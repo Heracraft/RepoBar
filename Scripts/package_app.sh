@@ -30,3 +30,9 @@ if [ -n "${IDENTITY}" ] && [ -d "${APP_BUNDLE}" ]; then
   log "==> Codesigning with ${IDENTITY}"
   "${ROOT_DIR}/Scripts/codesign_app.sh" "${APP_BUNDLE}" "${IDENTITY}" || true
 fi
+
+# Optional notarization (set NOTARIZE=1 and NOTARY_PROFILE if needed)
+if [ "${NOTARIZE:-0}" -eq 1 ] && [ -d "${APP_BUNDLE}" ]; then
+  log "==> Notarizing app (profile: ${NOTARY_PROFILE:-Xcode Notary})"
+  "${ROOT_DIR}/Scripts/notarize_app.sh" "${APP_BUNDLE}" "${NOTARY_PROFILE:-}" || log "Notarization failed"
+fi
