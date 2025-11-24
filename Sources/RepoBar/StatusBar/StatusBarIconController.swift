@@ -6,7 +6,9 @@ final class StatusBarIconController {
     func update(button: NSStatusBarButton?, session: Session) {
         guard let button else { return }
         let status = self.aggregateStatus(for: session)
-        button.image = self.icon(for: status)
+        let icon = self.icon(for: status)
+        button.image = icon
+        button.alternateImage = icon // ensure highlighted state also uses template tinting
         button.image?.isTemplate = true // let macOS tint for native look
     }
 
@@ -36,13 +38,17 @@ final class StatusBarIconController {
         }
         let dot = NSImage(systemSymbolName: dotName, accessibilityDescription: nil)
 
-        guard let base, let dot else { return base ?? dot }
+        guard let base, let dot else { return self.templated(base ?? dot) }
         let image = NSImage(size: NSSize(width: 18, height: 18))
         image.lockFocus()
         base.draw(in: NSRect(origin: .zero, size: image.size))
         dot.draw(in: NSRect(x: image.size.width - 10, y: 2, width: 8, height: 8))
         image.unlockFocus()
-        image.isTemplate = true
+        return self.templated(image)
+    }
+
+    private func templated(_ image: NSImage?) -> NSImage? {
+        image?.isTemplate = true
         return image
     }
 }

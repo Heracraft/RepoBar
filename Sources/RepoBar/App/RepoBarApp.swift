@@ -6,6 +6,12 @@ import SwiftUI
 struct RepoBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate
+    @StateObject private var appState = AppState()
+
+    init() {
+        // Share a single AppState between the App delegate (status item) and SwiftUI scenes.
+        self.appDelegate.inject(appState: self.appState)
+    }
 
     var body: some Scene {
         // Hidden lifecycle keeper so Settings window can appear even without a main window (mirrors CodexBar/Trimmy)
@@ -14,6 +20,12 @@ struct RepoBarApp: App {
         }
         .defaultSize(width: 1, height: 1)
         .windowStyle(.hiddenTitleBar)
+
+        Settings {
+            SettingsView()
+                .environmentObject(self.appState.session)
+                .environmentObject(self.appState)
+        }
     }
 }
 
@@ -22,7 +34,11 @@ struct RepoBarApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
-    private let appState = AppState()
+    private var appState = AppState()
+
+    func inject(appState: AppState) {
+        self.appState = appState
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard ensureSingleInstance() else {
@@ -68,6 +84,13 @@ final class AppState: ObservableObject {
     let refreshScheduler = RefreshScheduler()
     private let settingsStore = SettingsStore()
 
+    // Default GitHub App values for convenience login from the main window.
+    private let defaultClientID = "Iv23liGm2arUyotWSjwJ"
+    private let defaultClientSecret = "9693b9928c9efd224838e096a147822680983e10"
+    private let defaultLoopbackPort: Int = 53682
+    private let defaultGitHubHost = URL(string: "https://github.com")!
+    private let defaultAPIHost = URL(string: "https://api.github.com")!
+
     init() {
         self.session.settings = self.settingsStore.load()
         Task {
@@ -77,6 +100,34 @@ final class AppState: ObservableObject {
         }
         self.refreshScheduler.configure(interval: self.session.settings.refreshInterval.seconds) { [weak self] in
             Task { await self?.refresh() }
+        }
+    }
+
+    /// Starts the OAuth flow using the default GitHub App credentials, invoked from the logged-out prompt.
+    func quickLogin() async {
+        self.session.account = .loggingIn
+        self.session.settings.loopbackPort = self.defaultLoopbackPort
+        await self.github.setAPIHost(self.defaultAPIHost)
+        self.session.settings.githubHost = self.defaultGitHubHost
+        self.session.settings.enterpriseHost = nil
+
+        do {
+            try await self.auth.login(
+                clientID: self.defaultClientID,
+                clientSecret: self.defaultClientSecret,
+                pemPath: "",
+                host: self.defaultGitHubHost,
+                loopbackPort: self.defaultLoopbackPort)
+            if let user = try? await self.github.currentUser() {
+                self.session.account = .loggedIn(user)
+                self.session.lastError = nil
+            } else {
+                self.session.account = .loggedIn(UserIdentity(username: "", host: self.defaultGitHubHost))
+            }
+            await self.refresh()
+        } catch {
+            self.session.account = .loggedOut
+            self.session.lastError = error.userFacingMessage
         }
     }
 
