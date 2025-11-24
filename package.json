@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "format": "swiftformat .",
-    "lint": "swiftlint lint --fix",
-    "check": "pnpm format && pnpm lint",
+    "format": "./Scripts/swiftformat.sh",
+    "lint": "./Scripts/swiftlint.sh",
+    "check": "pnpm format && pnpm lint && pnpm test",
     "test": "swift test",
     "build": "swift build",
     "start": "./Scripts/compile_and_run.sh",
