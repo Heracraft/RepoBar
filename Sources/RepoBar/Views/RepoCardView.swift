@@ -1,0 +1,157 @@
+import SwiftUI
+
+struct RepoCardView: View {
+    let repo: RepositoryViewModel
+    let unpin: () -> Void
+    let moveUp: (() -> Void)?
+    let moveDown: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(self.repo.title)
+                        .font(.headline)
+                        .lineLimit(1)
+                    if let release = repo.latestRelease {
+                        Text("Latest release: \(release) · \(self.repo.latestReleaseDate ?? "")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Menu {
+                    Button("Unpin", action: self.unpin)
+                    Button("Open in GitHub") { self.open(url: self.repoURL()) }
+                    if let moveUp {
+                        Button("Move up", action: moveUp)
+                    }
+                    if let moveDown {
+                        Button("Move down", action: moveDown)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            HStack(spacing: 12) {
+                StatusDot(status: self.repo.ciStatus)
+                StatBadge(text: "Issues", value: self.repo.issues)
+                StatBadge(text: "PRs", value: self.repo.pulls)
+                if let visitors = repo.trafficVisitors {
+                    StatBadge(text: "Visitors", value: visitors)
+                }
+                if let cloners = repo.trafficCloners {
+                    StatBadge(text: "Cloners", value: cloners)
+                }
+            }
+
+            if let activity = repo.activityLine, let url = repo.activityURL {
+                Button {
+                    self.open(url: url)
+                } label: {
+                    Label(activity, systemImage: "text.bubble")
+                        .font(.caption)
+                        .lineLimit(2)
+                }
+                .buttonStyle(.link)
+            }
+
+            if let error = repo.error {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                    Text(error).font(.caption).lineLimit(2)
+                }
+            } else if let limit = repo.rateLimitedUntil {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock").foregroundStyle(.yellow)
+                    Text("Rate limited until \(RelativeFormatter.string(from: limit, relativeTo: Date()))")
+                        .font(.caption)
+                }
+            }
+
+            if !self.repo.heatmap.isEmpty {
+                HeatmapView(cells: self.repo.heatmap)
+            }
+        }
+        .padding(12)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityAction(named: Text("Move down")) { self.moveDown?() }
+        .accessibilityAction(named: Text("Move up")) { self.moveUp?() }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(self.accessibilitySummary())
+    }
+
+    private func repoURL() -> URL {
+        URL(string: "https://github.com/\(self.repo.title)")!
+    }
+
+    private func open(url: URL) {
+        NSWorkspace.shared.open(url)
+    }
+
+    private func accessibilitySummary() -> String {
+        var parts: [String] = [self.repo.title]
+        parts.append("CI \(self.repo.ciStatus)")
+        parts.append("Issues \(self.repo.issues)")
+        parts.append("Pull requests \(self.repo.pulls)")
+        if let release = self.repo.latestReleaseDate {
+            parts.append("Latest release \(release)")
+        }
+        if let activity = self.repo.activityLine {
+            parts.append("Activity \(activity)")
+        }
+        return parts.joined(separator: ", ")
+    }
+}
+
+struct StatusDot: View {
+    let status: CIStatus
+    var body: some View {
+        Circle()
+            .fill(self.color)
+            .frame(width: 12, height: 12)
+            .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 0.5))
+            .help(self.helpText)
+    }
+
+    private var color: Color {
+        switch self.status {
+        case .passing: .green
+        case .failing: .red
+        case .pending: .yellow
+        case .unknown: .gray
+        }
+    }
+
+    private var helpText: String {
+        switch self.status {
+        case .passing: "CI passing"
+        case .failing: "CI failing"
+        case .pending: "CI pending"
+        case .unknown: "CI unknown"
+        }
+    }
+}
+
+struct StatBadge: View {
+    let text: String
+    let value: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(self.text)
+                .font(.caption2)
+            Text("\(self.value)")
+                .font(.caption2).bold()
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}

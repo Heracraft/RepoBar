@@ -1,0 +1,57 @@
+import Foundation
+
+struct RepositoryViewModel: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let latestRelease: String?
+    let latestReleaseDate: String?
+    let ciStatus: CIStatus
+    let issues: Int
+    let pulls: Int
+    let trafficVisitors: Int?
+    let trafficCloners: Int?
+    let activityLine: String?
+    let activityURL: URL?
+    let heatmap: [HeatmapCell]
+    let sortOrder: Int?
+    let error: String?
+    let rateLimitedUntil: Date?
+
+    init(repo: Repository, now: Date = Date()) {
+        self.id = repo.id
+        self.title = repo.fullName
+        self.ciStatus = repo.ciStatus
+        self.issues = repo.openIssues
+        self.pulls = repo.openPulls
+        self.trafficVisitors = repo.traffic?.uniqueVisitors
+        self.trafficCloners = repo.traffic?.uniqueCloners
+        self.heatmap = repo.heatmap
+        self.sortOrder = repo.sortOrder
+        self.error = repo.error
+        self.rateLimitedUntil = repo.rateLimitedUntil
+
+        if let release = repo.latestRelease {
+            self.latestRelease = release.name
+            self.latestReleaseDate = RelativeFormatter.string(from: release.publishedAt, relativeTo: now)
+        } else {
+            self.latestRelease = nil
+            self.latestReleaseDate = nil
+        }
+
+        if let activity = repo.latestActivity {
+            self.activityLine = "\(activity.actor): \(activity.title)"
+            self.activityURL = activity.url
+        } else {
+            self.activityLine = nil
+            self.activityURL = nil
+        }
+    }
+}
+
+enum RelativeFormatter {
+    static func string(from date: Date, relativeTo now: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: now)
+    }
+}
