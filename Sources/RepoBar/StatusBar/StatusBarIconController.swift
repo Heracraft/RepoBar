@@ -68,10 +68,11 @@ enum AggregateStatus {
 
 extension NSColor {
     fileprivate func darker(by amount: CGFloat) -> NSColor {
-        NSColor(
-            calibratedRed: max(self.redComponent - amount, 0),
-            green: max(self.greenComponent - amount, 0),
-            blue: max(self.blueComponent - amount, 0),
-            alpha: self.alphaComponent)
+        let rgb = self.usingColorSpace(.deviceRGB) ?? self
+        return NSColor(
+            calibratedRed: max(rgb.redComponent - amount, 0),
+            green: max(rgb.greenComponent - amount, 0),
+            blue: max(rgb.blueComponent - amount, 0),
+            alpha: rgb.alphaComponent)
     }
 }
