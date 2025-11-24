@@ -82,7 +82,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         case .loggingIn: accountTitle = "Signing in…"
         case let .loggedIn(user):
             let host = user.host.host ?? "github.com"
-            accountTitle = "Signed in as \(user.username) @ \(host)"
+            accountTitle = "Signed in as \(user.username)@\(host)"
         }
         let accountItem = NSMenuItem(title: accountTitle, action: nil, keyEquivalent: "")
         accountItem.isEnabled = false
@@ -125,7 +125,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     }
 
     @objc private func openPreferences() {
+        NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        NotificationCenter.default.post(name: .repobarOpenSettings, object: nil)
     }
 
     @objc private func checkForUpdates() {
