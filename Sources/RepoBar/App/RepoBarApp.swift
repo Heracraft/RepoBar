@@ -8,11 +8,10 @@ struct RepoBarApp: App {
     var appDelegate
 
     var body: some Scene {
-        // Hidden window only to enable Settings for MenuBarExtra-only apps
-        WindowGroup("HiddenWindow") {
+        // Hidden lifecycle keeper so Settings window can appear even without a main window (mirrors CodexBar/Trimmy)
+        WindowGroup("RepoBarLifecycleKeepalive") {
             HiddenWindowView()
         }
-        .windowResizability(.contentSize)
         .defaultSize(width: 1, height: 1)
         .windowStyle(.hiddenTitleBar)
     }

@@ -7,7 +7,7 @@ struct MenuContentView: View {
     @State private var contributionWidth: CGFloat = 480
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if self.session.settings.showContributionHeader {
                 ContributionHeaderView(username: self.currentUsername())
                     .frame(maxWidth: .infinity)
@@ -50,6 +50,8 @@ struct MenuContentView: View {
                 }
             }
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
         .sheet(isPresented: self.$showingAddRepo) {
             AddRepoView(isPresented: self.$showingAddRepo) { repo in
                 Task { await self.appState.addPinned(repo.fullName) }
@@ -57,7 +59,16 @@ struct MenuContentView: View {
             .environmentObject(self.appState)
             .environmentObject(self.session)
         }
-        .frame(minWidth: 420, maxWidth: 520)
+        .frame(minWidth: 420, maxWidth: 560)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(nsColor: .underPageBackgroundColor),
+                    Color(nsColor: .windowBackgroundColor)
+                ],
+                startPoint: .top,
+                endPoint: .bottom)
+        )
     }
 
     private func currentUsername() -> String? {

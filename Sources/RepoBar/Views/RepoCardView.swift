@@ -7,15 +7,15 @@ struct RepoCardView: View {
     let moveDown: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(self.repo.title)
                         .font(.headline)
                         .lineLimit(1)
                     if let release = repo.latestRelease {
-                        Text("Latest release: \(release) · \(self.repo.latestReleaseDate ?? "")")
-                            .font(.caption)
+                        Text("Latest • \(release) • \(self.repo.latestReleaseDate ?? "")")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -37,7 +37,7 @@ struct RepoCardView: View {
                 .fixedSize()
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 StatusDot(status: self.repo.ciStatus)
                 StatBadge(text: "Issues", value: self.repo.issues)
                 StatBadge(text: "PRs", value: self.repo.pulls)
@@ -77,9 +77,14 @@ struct RepoCardView: View {
                 HeatmapView(cells: self.repo.heatmap)
             }
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1))
         .accessibilityAction(named: Text("Move down")) { self.moveDown?() }
         .accessibilityAction(named: Text("Move up")) { self.moveUp?() }
         .accessibilityElement(children: .combine)
