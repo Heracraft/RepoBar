@@ -200,8 +200,16 @@ struct RepoGridView: View {
     let repositories: [RepositoryViewModel]
     let unpin: (RepositoryViewModel) -> Void
     let move: (IndexSet, Int) -> Void
+    @EnvironmentObject var session: Session
 
-    private let columns = [GridItem(.adaptive(minimum: 260, maximum: 320), spacing: 12)]
+    private var columns: [GridItem] {
+        switch self.session.settings.cardDensity {
+        case .comfortable:
+            [GridItem(.adaptive(minimum: 260, maximum: 320), spacing: 12)]
+        case .compact:
+            [GridItem(.adaptive(minimum: 220, maximum: 280), spacing: 10)]
+        }
+    }
 
     var body: some View {
         let ordered = self.sorted(self.repositories)

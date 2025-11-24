@@ -26,4 +26,13 @@ actor ETagCache {
         if let until = rateLimitedUntil, until > now { return true }
         return false
     }
+
+    func clear() {
+        self.store.removeAll()
+        self.rateLimitedUntil = nil
+    }
+
+    func count() -> Int {
+        self.store.count
+    }
 }

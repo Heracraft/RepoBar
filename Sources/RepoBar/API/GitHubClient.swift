@@ -174,7 +174,23 @@ actor GitHubClient {
         }
     }
 
-    func clearCache() { /* placeholder */ }
+    func clearCache() async {
+        await self.etagCache.clear()
+        await self.backoff.clear()
+        self.lastRateLimitReset = nil
+        self.lastRateLimitError = nil
+    }
+
+    func diagnostics() async -> DiagnosticsSummary {
+        let etagCount = await self.etagCache.count()
+        let backoffCount = await self.backoff.count()
+        return DiagnosticsSummary(
+            apiHost: self.apiHost,
+            rateLimitReset: self.lastRateLimitReset,
+            lastRateLimitError: self.lastRateLimitError,
+            etagEntries: etagCount,
+            backoffEntries: backoffCount)
+    }
 
     // MARK: - Internal REST helpers
 
@@ -400,4 +416,19 @@ actor GitHubClient {
             return nil
         }
     }
+}
+
+struct DiagnosticsSummary {
+    let apiHost: URL
+    let rateLimitReset: Date?
+    let lastRateLimitError: String?
+    let etagEntries: Int
+    let backoffEntries: Int
+
+    static let empty = DiagnosticsSummary(
+        apiHost: URL(string: "https://api.github.com")!,
+        rateLimitReset: nil,
+        lastRateLimitError: nil,
+        etagEntries: 0,
+        backoffEntries: 0)
 }

@@ -5,79 +5,17 @@ struct RepoCardView: View {
     let unpin: () -> Void
     let moveUp: (() -> Void)?
     let moveDown: (() -> Void)?
+    @EnvironmentObject var session: Session
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(self.repo.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                    if let release = repo.latestRelease {
-                        Text("Latest • \(release) • \(self.repo.latestReleaseDate ?? "")")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                Menu {
-                    Button("Unpin", action: self.unpin)
-                    Button("Open in GitHub") { self.open(url: self.repoURL()) }
-                    if let moveUp {
-                        Button("Move up", action: moveUp)
-                    }
-                    if let moveDown {
-                        Button("Move down", action: moveDown)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .symbolRenderingMode(.hierarchical)
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-            }
-
-            HStack(spacing: 10) {
-                StatusDot(status: self.repo.ciStatus)
-                StatBadge(text: "Issues", value: self.repo.issues)
-                StatBadge(text: "PRs", value: self.repo.pulls)
-                if let visitors = repo.trafficVisitors {
-                    StatBadge(text: "Visitors", value: visitors)
-                }
-                if let cloners = repo.trafficCloners {
-                    StatBadge(text: "Cloners", value: cloners)
-                }
-            }
-
-            if let activity = repo.activityLine, let url = repo.activityURL {
-                Button {
-                    self.open(url: url)
-                } label: {
-                    Label(activity, systemImage: "text.bubble")
-                        .font(.caption)
-                        .lineLimit(2)
-                }
-                .buttonStyle(.link)
-            }
-
-            if let error = repo.error {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                    Text(error).font(.caption).lineLimit(2)
-                }
-            } else if let limit = repo.rateLimitedUntil {
-                HStack(spacing: 6) {
-                    Image(systemName: "clock").foregroundStyle(.yellow)
-                    Text("Rate limited until \(RelativeFormatter.string(from: limit, relativeTo: Date()))")
-                        .font(.caption)
-                }
-            }
-
-            if !self.repo.heatmap.isEmpty {
-                HeatmapView(cells: self.repo.heatmap)
-            }
+        VStack(alignment: .leading, spacing: self.verticalSpacing) {
+            self.header
+            self.stats
+            self.activity
+            self.errorOrLimit
+            self.heatmap
         }
-        .padding(14)
+        .padding(self.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(.ultraThinMaterial)
@@ -111,6 +49,94 @@ struct RepoCardView: View {
             parts.append("Activity \(activity)")
         }
         return parts.joined(separator: ", ")
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(self.repo.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                if let release = repo.latestRelease {
+                    Text("Latest • \(release) • \(self.repo.latestReleaseDate ?? "")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Menu {
+                Button("Unpin", action: self.unpin)
+                Button("Open in GitHub") { self.open(url: self.repoURL()) }
+                if let moveUp { Button("Move up", action: moveUp) }
+                if let moveDown { Button("Move down", action: moveDown) }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+    }
+
+    @ViewBuilder
+    private var stats: some View {
+        HStack(spacing: 10) {
+            StatusDot(status: self.repo.ciStatus)
+            StatBadge(text: "Issues", value: self.repo.issues)
+            StatBadge(text: "PRs", value: self.repo.pulls)
+            if let visitors = repo.trafficVisitors { StatBadge(text: "Visitors", value: visitors) }
+            if let cloners = repo.trafficCloners { StatBadge(text: "Cloners", value: cloners) }
+        }
+    }
+
+    @ViewBuilder
+    private var activity: some View {
+        if let activity = repo.activityLine, let url = repo.activityURL {
+            Button { self.open(url: url) } label: {
+                Label(activity, systemImage: "text.bubble")
+                    .font(.caption)
+                    .lineLimit(2)
+            }
+            .buttonStyle(.link)
+        }
+    }
+
+    @ViewBuilder
+    private var errorOrLimit: some View {
+        if let error = repo.error {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                Text(error).font(.caption).lineLimit(2)
+            }
+        } else if let limit = repo.rateLimitedUntil {
+            HStack(spacing: 6) {
+                Image(systemName: "clock").foregroundStyle(.yellow)
+                Text("Rate limited until \(RelativeFormatter.string(from: limit, relativeTo: Date()))")
+                    .font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var heatmap: some View {
+        if !self.repo.heatmap.isEmpty {
+            HeatmapView(cells: self.repo.heatmap, accentTone: self.session.settings.accentTone)
+        }
+    }
+
+    private var cardPadding: CGFloat {
+        switch self.session.settings.cardDensity {
+        case .comfortable: 14
+        case .compact: 10
+        }
+    }
+
+    private var verticalSpacing: CGFloat {
+        switch self.session.settings.cardDensity {
+        case .comfortable: 10
+        case .compact: 8
+        }
     }
 }
 

@@ -179,6 +179,14 @@ final class AppState: ObservableObject {
         await self.refresh()
     }
 
+    func diagnostics() async -> DiagnosticsSummary {
+        await self.github.diagnostics()
+    }
+
+    func clearCaches() async {
+        await self.github.clearCache()
+    }
+
     func persistSettings() {
         self.settingsStore.save(self.session.settings)
     }
@@ -232,6 +240,9 @@ struct UserSettings: Equatable, Codable {
     var refreshInterval: RefreshInterval = .fiveMinutes
     var launchAtLogin = false
     var showHeatmap = true
+    var cardDensity: CardDensity = .comfortable
+    var accentTone: AccentTone = .githubGreen
+    var diagnosticsEnabled: Bool = false
     var githubHost: URL = .init(string: "https://github.com")!
     var enterpriseHost: URL?
     var loopbackPort: Int = 53682
@@ -247,6 +258,30 @@ enum RefreshInterval: CaseIterable, Equatable, Codable {
         case .twoMinutes: 120
         case .fiveMinutes: 300
         case .fifteenMinutes: 900
+        }
+    }
+}
+
+enum CardDensity: String, CaseIterable, Equatable, Codable {
+    case comfortable
+    case compact
+
+    var label: String {
+        switch self {
+        case .comfortable: "Comfortable"
+        case .compact: "Compact"
+        }
+    }
+}
+
+enum AccentTone: String, CaseIterable, Equatable, Codable {
+    case system
+    case githubGreen
+
+    var label: String {
+        switch self {
+        case .system: "System accent"
+        case .githubGreen: "GitHub greens"
         }
     }
 }

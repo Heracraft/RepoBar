@@ -25,6 +25,13 @@ swift build -q
 log "==> swift test"
 swift test -q
 
+log "==> Codesigning debug build"
+if [ -d "${ROOT_DIR}/.build/debug/${APP_NAME}.app" ]; then
+  "${ROOT_DIR}/Scripts/codesign_app.sh" "${ROOT_DIR}/.build/debug/${APP_NAME}.app" "${CODESIGN_IDENTITY:-Apple Development}" || true
+else
+  codesign --force --sign "${CODESIGN_IDENTITY:-Apple Development}" "${ROOT_DIR}/.build/debug/${APP_NAME}" 2>/dev/null || true
+fi
+
 log "==> Launching debug build"
 "${ROOT_DIR}/.build/debug/${APP_NAME}" &
 

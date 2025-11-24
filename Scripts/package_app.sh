@@ -16,3 +16,10 @@ if [ -d "${APP_BUNDLE}" ]; then
 else
   fail "App bundle not found (SwiftPM may not have produced a bundle)."
 fi
+
+# Override Info.plist with packaged settings (LSUIElement, URL scheme).
+PLIST_TEMPLATE="${ROOT_DIR}/Resources/Info.plist"
+if [ -f "${PLIST_TEMPLATE}" ] && [ -d "${APP_BUNDLE}" ]; then
+  log "==> Installing custom Info.plist"
+  cp "${PLIST_TEMPLATE}" "${APP_BUNDLE}/Contents/Info.plist"
+fi

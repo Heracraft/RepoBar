@@ -21,4 +21,12 @@ actor BackoffTracker {
     func setCooldown(url: URL, until: Date) {
         self.cooldowns[url.absoluteString] = until
     }
+
+    func clear() {
+        self.cooldowns.removeAll()
+    }
+
+    func count() -> Int {
+        self.cooldowns.count
+    }
 }

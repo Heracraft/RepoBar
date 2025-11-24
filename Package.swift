@@ -23,6 +23,9 @@ let package = Package(
                 .product(name: "AppAuth", package: "AppAuth-iOS"),
                 .product(name: "Apollo", package: "apollo-ios"),
             ],
+            resources: [
+                .process("Resources/Info.plist"),
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
             ]),

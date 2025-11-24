@@ -2,7 +2,13 @@ import SwiftUI
 
 struct HeatmapView: View {
     let cells: [HeatmapCell]
+    let accentTone: AccentTone
     private let columns = 53 // roughly a year
+
+    init(cells: [HeatmapCell], accentTone: AccentTone = .githubGreen) {
+        self.cells = cells
+        self.accentTone = accentTone
+    }
 
     var body: some View {
         let rows = 7
@@ -22,12 +28,35 @@ struct HeatmapView: View {
     }
 
     private func color(for count: Int) -> Color {
+        let palette = self.palette()
         switch count {
-        case 0: Color(nsColor: .controlBackgroundColor)
-        case 1...3: Color(red: 0.78, green: 0.93, blue: 0.79)
-        case 4...7: Color(red: 0.51, green: 0.82, blue: 0.56)
-        case 8...12: Color(red: 0.2, green: 0.65, blue: 0.32)
-        default: Color(red: 0.12, green: 0.45, blue: 0.2)
+        case 0: return palette[0]
+        case 1...3: return palette[1]
+        case 4...7: return palette[2]
+        case 8...12: return palette[3]
+        default: return palette[4]
+        }
+    }
+
+    private func palette() -> [Color] {
+        switch self.accentTone {
+        case .githubGreen:
+            return [
+                Color(nsColor: .controlBackgroundColor),
+                Color(red: 0.78, green: 0.93, blue: 0.79),
+                Color(red: 0.51, green: 0.82, blue: 0.56),
+                Color(red: 0.2, green: 0.65, blue: 0.32),
+                Color(red: 0.12, green: 0.45, blue: 0.2),
+            ]
+        case .system:
+            let accent = Color.accentColor
+            return [
+                Color(nsColor: .controlBackgroundColor),
+                accent.opacity(0.25),
+                accent.opacity(0.45),
+                accent.opacity(0.7),
+                accent.opacity(0.9),
+            ]
         }
     }
 

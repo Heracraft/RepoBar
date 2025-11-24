@@ -65,6 +65,35 @@ struct GeneralSettingsView: View {
     }
 }
 
+struct AppearanceSettingsView: View {
+    @EnvironmentObject var session: Session
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Form {
+            Picker("Card density", selection: self.$session.settings.cardDensity) {
+                ForEach(CardDensity.allCases, id: \.self) { density in
+                    Text(density.label).tag(density)
+                }
+            }
+            .onChange(of: self.session.settings.cardDensity) { _, _ in self.appState.persistSettings() }
+
+            Picker("Accent tone", selection: self.$session.settings.accentTone) {
+                ForEach(AccentTone.allCases, id: \.self) { tone in
+                    Text(tone.label).tag(tone)
+                }
+            }
+            .onChange(of: self.session.settings.accentTone) { _, _ in self.appState.persistSettings() }
+
+            Text("GitHub greens keep the classic contribution palette; System accent follows your macOS accent color.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        }
+        .padding()
+    }
+}
+
 struct AccountSettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var session: Session
@@ -171,31 +200,51 @@ struct AccountSettingsView: View {
 struct AdvancedSettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var session: Session
+    @State private var diagnostics = DiagnosticsSummary.empty
 
     var body: some View {
         Form {
             Button("Clear cache") {
-                Task { await self.appState.github.clearCache() }
+                Task {
+                    await self.appState.clearCaches()
+                    await self.loadDiagnostics()
+                }
             }
             Button("Force refresh") {
                 self.appState.refreshScheduler.forceRefresh()
             }
+            Toggle("Show diagnostics", isOn: self.$session.settings.diagnosticsEnabled)
+                .onChange(of: self.session.settings.diagnosticsEnabled) { _, _ in
+                    self.appState.persistSettings()
+                    Task { await self.loadDiagnostics() }
+                }
             Section("Diagnostics") {
                 LabeledContent("API host") {
-                    Text(self.appState.session.settings.githubHost.absoluteString)
+                    Text(self.diagnostics.apiHost.absoluteString)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                if let reset = session.rateLimitReset {
+                if let reset = diagnostics.rateLimitReset {
                     LabeledContent("Rate limit resets") {
                         Text(RelativeFormatter.string(from: reset, relativeTo: Date()))
                     }
                 }
-                if let error = session.lastError {
-                    LabeledContent("Last error") { Text(error).foregroundStyle(.red) }
+                if let error = diagnostics.lastRateLimitError {
+                    LabeledContent("Last API notice") { Text(error).foregroundStyle(.red) }
                 }
+                LabeledContent("Backoff entries") { Text("\(self.diagnostics.backoffEntries)") }
+                LabeledContent("ETag entries") { Text("\(self.diagnostics.etagEntries)") }
+                Button("Refresh diagnostics") { Task { await self.loadDiagnostics() } }
             }
+            .opacity(self.session.settings.diagnosticsEnabled ? 1 : 0.4)
+            .disabled(!self.session.settings.diagnosticsEnabled)
         }
         .padding()
+        .task { await self.loadDiagnostics() }
+    }
+
+    private func loadDiagnostics() async {
+        guard self.session.settings.diagnosticsEnabled else { return }
+        self.diagnostics = await self.appState.diagnostics()
     }
 }
