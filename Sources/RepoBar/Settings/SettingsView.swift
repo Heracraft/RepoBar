@@ -424,6 +424,12 @@ struct DebugSettingsView: View {
                 Button("Clear contribution heatmap cache") {
                     self.appState.clearContributionCache()
                 }
+                Button("Clear release cache") {
+                    Task {
+                        await self.appState.github.clearCache()
+                        await self.appState.refresh()
+                    }
+                }
                 Button("Force refresh") {
                     self.appState.refreshScheduler.forceRefresh()
                 }

@@ -425,7 +425,7 @@ actor GitHubClient {
             url: apiHost.appending(path: "/repos/\(owner)/\(name)/releases"),
             resolvingAgainstBaseURL: false
         )!
-        components.queryItems = [URLQueryItem(name: "per_page", value: "10")]
+        components.queryItems = [URLQueryItem(name: "per_page", value: "20")]
         let (data, response) = try await authorizedGet(url: components.url!, token: token, allowedStatuses: [200, 304, 404])
         guard response.statusCode != 404 else { throw URLError(.fileDoesNotExist) }
         let releases = try jsonDecoder.decode([ReleaseResponse].self, from: data)

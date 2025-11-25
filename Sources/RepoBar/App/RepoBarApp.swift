@@ -267,6 +267,7 @@ final class AppState: ObservableObject {
 
     func clearCaches() async {
         await self.github.clearCache()
+        ContributionCacheStore.clear()
     }
 
     func persistSettings() {
