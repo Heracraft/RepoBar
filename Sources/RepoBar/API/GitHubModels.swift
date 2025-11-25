@@ -113,3 +113,7 @@ struct CommitActivityWeek: Decodable {
         case days
     }
 }
+
+struct PullRequestListItem: Decodable {
+    let id: Int
+}

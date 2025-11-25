@@ -449,6 +449,12 @@ struct DebugSettingsView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                if let rest = diagnostics.restRateLimit {
+                    LabeledContent("REST rate limit") { Text(self.formatRate(rest)) }
+                }
+                if let graphql = diagnostics.graphQLRateLimit {
+                    LabeledContent("GraphQL rate limit") { Text(self.formatRate(graphql)) }
+                }
                 if let reset = diagnostics.rateLimitReset {
                     LabeledContent("Rate limit resets") {
                         Text(RelativeFormatter.string(from: reset, relativeTo: Date()))
@@ -474,5 +480,27 @@ struct DebugSettingsView: View {
             return
         }
         self.diagnostics = await self.appState.diagnostics()
+    }
+
+    private func formatRate(_ snapshot: RateLimitSnapshot) -> String {
+        var parts: [String] = []
+        if let resource = snapshot.resource?.uppercased() {
+            parts.append(resource)
+        }
+        if let remaining = snapshot.remaining, let limit = snapshot.limit {
+            parts.append("\(remaining)/\(limit) left")
+        } else if let remaining = snapshot.remaining {
+            parts.append("\(remaining) remaining")
+        } else if let limit = snapshot.limit {
+            parts.append("limit \(limit)")
+        }
+        if let used = snapshot.used {
+            parts.append("\(used) used")
+        }
+        if let reset = snapshot.reset {
+            parts.append("resets \(RelativeFormatter.string(from: reset, relativeTo: Date()))")
+        }
+        let text = parts.joined(separator: " • ")
+        return text.isEmpty ? "—" : text
     }
 }

@@ -20,6 +20,7 @@ actor GitHubClient {
     private let diag = DiagnosticsLogger.shared
     private var prefetchedRepos: [Repository] = []
     private var prefetchedReposExpiry: Date?
+    private var latestRestRateLimit: RateLimitSnapshot?
 
     // MARK: - Config
 
@@ -110,8 +111,8 @@ actor GitHubClient {
         }
 
         // Run all expensive lookups in parallel; individual failures are folded into the accumulator.
-        async let summaryResult: Result<RepoSummary, Error> = self.capture {
-            try await self.graphQL.repoSummary(owner: owner, name: name)
+        async let openPullsResult: Result<Int, Error> = self.capture {
+            try await self.openPullRequestCount(owner: owner, name: name)
         }
         async let ciResult: Result<CIStatusDetails, Error> = self.capture { try await self.ciStatus(owner: owner, name: name) }
         async let activityResult: Result<ActivityEvent?, Error> = self.capture { try await self.latestActivity(
@@ -126,14 +127,9 @@ actor GitHubClient {
             owner: owner,
             name: name
         ) }
-        let summary = await self.value(from: summaryResult, into: &accumulator)
-        let issues = summary?.openIssues ?? details.openIssuesCount
-        let pulls = summary?.openPulls ?? 0
-        let releaseREST: Release? = if let summaryRelease = summary?.release {
-            summaryRelease
-        } else {
-            try? await self.latestReleaseAny(owner: owner, name: name)
-        }
+        let openPulls = await self.value(from: openPullsResult, into: &accumulator) ?? 0
+        let issues = max(details.openIssuesCount - openPulls, 0)
+        let releaseREST: Release? = try? await self.latestReleaseAny(owner: owner, name: name)
         let ciDetails = await self.value(from: ciResult, into: &accumulator)
         let ci = ciDetails?.status ?? .unknown
         let ciRunCount = ciDetails?.runCount
@@ -142,7 +138,7 @@ actor GitHubClient {
         let heatmap = await self.value(from: heatmapResult, into: &accumulator) ?? []
 
         let finalIssues = issues
-        let finalPulls = pulls
+        let finalPulls = openPulls
         let finalRelease = releaseREST
         let finalActivity: ActivityEvent? = activity
 
@@ -218,12 +214,14 @@ actor GitHubClient {
     func diagnostics() async -> DiagnosticsSummary {
         let etagCount = await self.etagCache.count()
         let backoffCount = await self.backoff.count()
-        return DiagnosticsSummary(
+        return await DiagnosticsSummary(
             apiHost: self.apiHost,
             rateLimitReset: self.lastRateLimitReset,
             lastRateLimitError: self.lastRateLimitError,
             etagEntries: etagCount,
-            backoffEntries: backoffCount
+            backoffEntries: backoffCount,
+            restRateLimit: self.latestRestRateLimit,
+            graphQLRateLimit: self.graphQL.rateLimitSnapshot()
         )
     }
 
@@ -418,6 +416,27 @@ actor GitHubClient {
         }
     }
 
+    private func openPullRequestCount(owner: String, name: String) async throws -> Int {
+        let token = try await validAccessToken()
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/pulls"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "state", value: "open"),
+            URLQueryItem(name: "per_page", value: "1"),
+            URLQueryItem(name: "page", value: "1")
+        ]
+        let (data, response) = try await authorizedGet(url: components.url!, token: token)
+        let pulls = try jsonDecoder.decode([PullRequestListItem].self, from: data)
+
+        if let link = response.value(forHTTPHeaderField: "Link"), let last = Self.lastPage(from: link) {
+            return last
+        }
+
+        return pulls.count
+    }
+
     /// Most recent release (including prereleases) ordered by creation date; skips drafts.
     private func latestReleaseAny(owner: String, name: String) async throws -> Release {
         let token = try await validAccessToken()
@@ -519,6 +538,9 @@ actor GitHubClient {
             await self.etagCache.save(url: url, etag: etag, data: data)
             await self.diag.message("Cached ETag for \(url.lastPathComponent)")
         }
+        if let snapshot = RateLimitSnapshot.from(response: response) {
+            self.latestRestRateLimit = snapshot
+        }
         self.detectRateLimit(from: response)
         return (data, response)
     }
@@ -570,6 +592,22 @@ actor GitHubClient {
             return nil
         }
     }
+
+    private static func lastPage(from linkHeader: String) -> Int? {
+        // Example: <https://api.github.com/repositories/1300192/pulls?state=open&per_page=1&page=2>; rel="next",
+        //          <https://api.github.com/repositories/1300192/pulls?state=open&per_page=1&page=4>; rel="last"
+        for part in linkHeader.split(separator: ",") {
+            let segments = part.split(separator: ";")
+            guard segments.contains(where: { $0.contains("rel=\"last\"") }) else { continue }
+            let urlPart = segments[0].trimmingCharacters(in: .whitespaces)
+            let trimmed = urlPart.trimmingCharacters(in: CharacterSet(charactersIn: "<> "))
+            guard let components = URLComponents(string: trimmed),
+                  let page = components.queryItems?.first(where: { $0.name == "page" })?.value,
+                  let pageNumber = Int(page) else { continue }
+            return pageNumber
+        }
+        return nil
+    }
 }
 
 private struct InstallationReposResponse: Decodable {
@@ -588,12 +626,16 @@ struct DiagnosticsSummary {
     let lastRateLimitError: String?
     let etagEntries: Int
     let backoffEntries: Int
+    let restRateLimit: RateLimitSnapshot?
+    let graphQLRateLimit: RateLimitSnapshot?
 
     static let empty = DiagnosticsSummary(
         apiHost: URL(string: "https://api.github.com")!,
         rateLimitReset: nil,
         lastRateLimitError: nil,
         etagEntries: 0,
-        backoffEntries: 0
+        backoffEntries: 0,
+        restRateLimit: nil,
+        graphQLRateLimit: nil
     )
 }

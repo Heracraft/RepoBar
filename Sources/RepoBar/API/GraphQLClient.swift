@@ -4,6 +4,7 @@ import Foundation
 actor GraphQLClient {
     private var endpoint: URL = .init(string: "https://api.github.com/graphql")!
     private var tokenProvider: (@Sendable () async throws -> String)?
+    private var rateLimit: RateLimitSnapshot?
     private let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -56,6 +57,9 @@ actor GraphQLClient {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if let snapshot = RateLimitSnapshot.from(response: http) {
+            self.rateLimit = snapshot
+        }
         guard http.statusCode == 200 else {
             await self.diag.message("GraphQL status \(http.statusCode) for \(owner)/\(name)")
             throw URLError(.badServerResponse)
@@ -110,6 +114,9 @@ actor GraphQLClient {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if let snapshot = RateLimitSnapshot.from(response: http) {
+            self.rateLimit = snapshot
+        }
         guard http.statusCode == 200 else {
             await self.diag.message("GraphQL status \(http.statusCode) for contributions \(login)")
             throw URLError(.badServerResponse)
@@ -126,6 +133,10 @@ actor GraphQLClient {
                 HeatmapCell(date: day.date, count: day.contributionCount)
             }
         }
+    }
+
+    func rateLimitSnapshot() -> RateLimitSnapshot? {
+        self.rateLimit
     }
 }
 
