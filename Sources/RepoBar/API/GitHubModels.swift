@@ -54,9 +54,13 @@ struct ReleaseResponse: Decodable {
 }
 
 struct ActionsRunsResponse: Decodable {
+    let totalCount: Int?
     let workflowRuns: [WorkflowRun]
 
-    enum CodingKeys: String, CodingKey { case workflowRuns = "workflow_runs" }
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case workflowRuns = "workflow_runs"
+    }
 
     struct WorkflowRun: Decodable {
         let status: String?

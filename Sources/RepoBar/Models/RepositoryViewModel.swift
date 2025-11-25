@@ -6,6 +6,7 @@ struct RepositoryViewModel: Identifiable, Equatable {
     let latestRelease: String?
     let latestReleaseDate: String?
     let ciStatus: CIStatus
+    let ciRunCount: Int?
     let issues: Int
     let pulls: Int
     let trafficVisitors: Int?
@@ -21,6 +22,7 @@ struct RepositoryViewModel: Identifiable, Equatable {
         self.id = repo.id
         self.title = repo.fullName
         self.ciStatus = repo.ciStatus
+        self.ciRunCount = repo.ciRunCount
         self.issues = repo.openIssues
         self.pulls = repo.openPulls
         self.trafficVisitors = repo.traffic?.uniqueVisitors

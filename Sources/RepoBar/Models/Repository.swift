@@ -8,6 +8,7 @@ struct Repository: Identifiable, Equatable {
     var error: String?
     var rateLimitedUntil: Date?
     var ciStatus: CIStatus
+    var ciRunCount: Int?
     var openIssues: Int
     var openPulls: Int
     var latestRelease: Release?
@@ -26,6 +27,7 @@ struct Repository: Identifiable, Equatable {
             error: self.error,
             rateLimitedUntil: self.rateLimitedUntil,
             ciStatus: self.ciStatus,
+            ciRunCount: self.ciRunCount,
             openIssues: self.openIssues,
             openPulls: self.openPulls,
             latestRelease: self.latestRelease,
@@ -66,4 +68,9 @@ struct HeatmapCell: Identifiable, Equatable {
     let id = UUID()
     let date: Date
     let count: Int
+}
+
+struct CIStatusDetails {
+    let status: CIStatus
+    let runCount: Int?
 }

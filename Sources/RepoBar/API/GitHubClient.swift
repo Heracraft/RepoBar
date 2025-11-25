@@ -127,7 +127,7 @@ actor GitHubClient {
                 return nil
             }
         }
-        async let ciResult: Result<CIStatus, Error> = self.capture { try await self.ciStatus(owner: owner, name: name) }
+        async let ciResult: Result<CIStatusDetails, Error> = self.capture { try await self.ciStatus(owner: owner, name: name) }
         async let activityResult: Result<ActivityEvent?, Error> = self.capture { try await self.latestActivity(
             owner: owner,
             name: name
@@ -149,7 +149,9 @@ actor GitHubClient {
         let issues = await self.value(from: issuesResult, into: &accumulator) ?? details.openIssuesCount
         let pulls = await self.value(from: prsResult, into: &accumulator) ?? 0
         let releaseREST: Release? = await self.value(from: releaseResult, into: &accumulator) ?? nil // swiftlint:disable:this redundant_nil_coalescing
-        let ci = await self.value(from: ciResult, into: &accumulator) ?? .unknown
+        let ciDetails = await self.value(from: ciResult, into: &accumulator)
+        let ci = ciDetails?.status ?? .unknown
+        let ciRunCount = ciDetails?.runCount
         let activity: ActivityEvent? = await self.value(from: activityResult, into: &accumulator) ?? nil // swiftlint:disable:this redundant_nil_coalescing
         let traffic = await self.value(from: trafficResult, into: &accumulator)
         let heatmap = await self.value(from: heatmapResult, into: &accumulator) ?? []
@@ -170,6 +172,7 @@ actor GitHubClient {
             error: accumulator.message,
             rateLimitedUntil: accumulator.rateLimit,
             ciStatus: ci,
+            ciRunCount: ciRunCount,
             openIssues: finalIssues,
             openPulls: finalPulls,
             latestRelease: finalRelease,
@@ -374,7 +377,7 @@ actor GitHubClient {
         return Release(name: rel.name ?? rel.tagName, tag: rel.tagName, publishedAt: rel.publishedAt, url: rel.htmlUrl)
     }
 
-    private func ciStatus(owner: String, name: String) async throws -> CIStatus {
+    private func ciStatus(owner: String, name: String) async throws -> CIStatusDetails {
         let token = try await validAccessToken()
         var components = URLComponents(
             url: apiHost.appending(path: "/repos/\(owner)/\(name)/actions/runs"),
@@ -383,13 +386,14 @@ actor GitHubClient {
         components.queryItems = [URLQueryItem(name: "per_page", value: "1")]
         let (data, _) = try await authorizedGet(url: components.url!, token: token)
         let runs = try jsonDecoder.decode(ActionsRunsResponse.self, from: data)
-        guard let run = runs.workflowRuns.first else { return .unknown }
-        switch run.conclusion ?? run.status {
-        case "success": return .passing
-        case "failure", "cancelled", "timed_out": return .failing
-        case "in_progress", "queued", "waiting": return .pending
-        default: return .unknown
+        guard let run = runs.workflowRuns.first else { return CIStatusDetails(status: .unknown, runCount: runs.totalCount) }
+        let status: CIStatus = switch run.conclusion ?? run.status {
+        case "success": .passing
+        case "failure", "cancelled", "timed_out": .failing
+        case "in_progress", "queued", "waiting": .pending
+        default: .unknown
         }
+        return CIStatusDetails(status: status, runCount: runs.totalCount)
     }
 
     private func latestActivity(owner: String, name: String) async throws -> ActivityEvent? {

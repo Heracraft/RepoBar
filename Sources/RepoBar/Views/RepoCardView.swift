@@ -85,7 +85,7 @@ struct RepoCardView: View {
     @ViewBuilder
     private var stats: some View {
         HStack(spacing: 10) {
-            StatusDot(status: self.repo.ciStatus)
+            CIBadge(status: self.repo.ciStatus, runCount: self.repo.ciRunCount)
             StatBadge(text: "Issues", value: self.repo.issues)
             StatBadge(text: "PRs", value: self.repo.pulls)
             if let visitors = repo.trafficVisitors { StatBadge(text: "Visitors", value: visitors) }
@@ -144,14 +144,32 @@ struct RepoCardView: View {
     }
 }
 
-struct StatusDot: View {
+private struct CIBadge: View {
     let status: CIStatus
+    let runCount: Int?
+
     var body: some View {
-        Circle()
-            .fill(self.color)
-            .frame(width: 12, height: 12)
-            .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 0.5))
-            .help(self.helpText)
+        HStack(spacing: 6) {
+            Circle()
+                .fill(self.color)
+                .frame(width: 10, height: 10)
+            Text("CI")
+                .font(.caption).bold()
+            if let runCount {
+                Text("\(runCount)")
+                    .font(.caption2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color.black.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(self.color.opacity(0.18))
+        .foregroundStyle(self.color)
+        .clipShape(Capsule(style: .continuous))
+        .help(self.helpText)
     }
 
     private var color: Color {
@@ -165,10 +183,10 @@ struct StatusDot: View {
 
     private var helpText: String {
         switch self.status {
-        case .passing: "CI passing"
-        case .failing: "CI failing"
-        case .pending: "CI pending"
-        case .unknown: "CI unknown"
+        case .passing: "Latest CI run passing"
+        case .failing: "Latest CI run failing"
+        case .pending: "Latest CI run in progress"
+        case .unknown: "CI status unknown"
         }
     }
 }
