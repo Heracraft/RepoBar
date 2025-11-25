@@ -149,23 +149,28 @@ private struct RepoInputRow<Accessory: View>: View {
         ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    TextField(self.placeholder, text: self.$text)
-                        .textFieldStyle(.roundedBorder)
-                        .focused(self.$isFocused)
-                        .onChange(of: self.text) { _, _ in self.scheduleSearch() }
-                        .onSubmit { self.commit() }
-                        .onTapGesture { self.showSuggestions = true
-                            self.scheduleSearch(immediate: true)
+                    ZStack(alignment: .trailing) {
+                        TextField(self.placeholder, text: self.$text)
+                            .textFieldStyle(.roundedBorder)
+                            .focused(self.$isFocused)
+                            .onChange(of: self.text) { _, _ in self.scheduleSearch() }
+                            .onSubmit { self.commit() }
+                            .onTapGesture {
+                                self.showSuggestions = true
+                                self.scheduleSearch(immediate: true)
+                            }
+
+                        if self.isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .padding(.trailing, 8)
                         }
+                    }
 
                     self.accessory()
 
                     Button(self.buttonTitle) { self.commit() }
                         .disabled(self.trimmedText.isEmpty)
-                }
-
-                if self.isLoading {
-                    ProgressView().controlSize(.small)
                 }
             }
 
@@ -268,7 +273,8 @@ private struct RepoInputRow<Accessory: View>: View {
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 self.suggestions = merged
-                self.showSuggestions = self.isFocused && !self.suggestions.isEmpty
+                // Keep suggestions visible while typing even if focus flickers.
+                self.showSuggestions = !self.suggestions.isEmpty && (self.isFocused || !self.trimmedText.isEmpty)
             }
         } catch {
             guard !Task.isCancelled else { return }
