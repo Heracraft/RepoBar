@@ -7,14 +7,13 @@ struct CustomMenuContainer<Content: View>: View {
         ZStack {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 0.9))
             self.content()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 0)
+                .padding(.vertical, 0)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .frame(minWidth: 360, maxWidth: 460)
-        .shadow(color: .black.opacity(0.14), radius: 18, y: 12)
+        .shadow(color: .black.opacity(0.10), radius: 12, y: 8)
     }
 }

@@ -78,8 +78,8 @@ struct MenuContentView: View {
                     }
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 0)
+            .padding(.vertical, 0)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 420, maxWidth: 560)
@@ -245,7 +245,7 @@ struct RepoGridView: View {
 
     var body: some View {
         let ordered = self.sorted(self.repositories)
-        LazyVGrid(columns: self.columns, spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible(minimum: 340), spacing: 8)], spacing: 8) {
             ForEach(ordered) { repo in
                 let pinned = self.session.settings.pinnedRepositories.contains(repo.title)
                 RepoCardView(
@@ -264,7 +264,7 @@ struct RepoGridView: View {
                 .onDrop(of: [.text], delegate: DragReorderDelegate(item: repo, items: ordered, move: self.move))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 

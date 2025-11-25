@@ -13,6 +13,17 @@ final class CustomMenuWindow: NSWindow {
     init(contentView: some View) {
         let view = AnyView(contentView)
         let hosting = NSHostingView(rootView: view)
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+
+        let blur = NSVisualEffectView()
+        blur.blendingMode = .withinWindow
+        blur.material = .hudWindow
+        blur.state = .active
+        blur.wantsLayer = true
+        blur.layer?.cornerRadius = 18
+        blur.layer?.masksToBounds = true
+        blur.translatesAutoresizingMaskIntoConstraints = false
+
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 420),
             styleMask: [.borderless],
@@ -23,8 +34,17 @@ final class CustomMenuWindow: NSWindow {
         backgroundColor = .clear
         hasShadow = true
         level = .popUpMenu
+
         self.hostingView = hosting
-        self.contentView = hosting
+        self.contentView = blur
+
+        blur.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: blur.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: blur.bottomAnchor),
+        ])
     }
 
     func show(relativeTo button: NSStatusBarButton) {
