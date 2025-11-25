@@ -110,22 +110,8 @@ actor GitHubClient {
         }
 
         // Run all expensive lookups in parallel; individual failures are folded into the accumulator.
-        async let issuesResult: Result<Int, Error> = self.capture { try await self.openCount(
-            owner: owner,
-            name: name,
-            type: .issue
-        ) }
-        async let prsResult: Result<Int, Error> = self.capture { try await self.openCount(
-            owner: owner,
-            name: name,
-            type: .pullRequest
-        ) }
-        async let releaseResult: Result<Release?, Error> = self.capture {
-            do {
-                return try await self.latestRelease(owner: owner, name: name)
-            } catch let error as URLError where error.code == .fileDoesNotExist {
-                return nil
-            }
+        async let summaryResult: Result<RepoSummary, Error> = self.capture {
+            try await self.graphQL.repoSummary(owner: owner, name: name)
         }
         async let ciResult: Result<CIStatusDetails, Error> = self.capture { try await self.ciStatus(owner: owner, name: name) }
         async let activityResult: Result<ActivityEvent?, Error> = self.capture { try await self.latestActivity(
@@ -140,15 +126,10 @@ actor GitHubClient {
             owner: owner,
             name: name
         ) }
-        async let graphResult: Result<GraphRepoSnapshot, Error> = self
-            .capture { try await self.graphQL.fetchRepoSnapshot(
-                owner: owner,
-                name: name
-            ) }
-
-        let issues = await self.value(from: issuesResult, into: &accumulator) ?? details.openIssuesCount
-        let pulls = await self.value(from: prsResult, into: &accumulator) ?? 0
-        let releaseREST: Release? = await self.value(from: releaseResult, into: &accumulator) ?? nil // swiftlint:disable:this redundant_nil_coalescing
+        let summary = await self.value(from: summaryResult, into: &accumulator)
+        let issues = summary?.openIssues ?? details.openIssuesCount
+        let pulls = summary?.openPulls ?? 0
+        let releaseREST: Release? = summary?.release
         let ciDetails = await self.value(from: ciResult, into: &accumulator)
         let ci = ciDetails?.status ?? .unknown
         let ciRunCount = ciDetails?.runCount
@@ -156,13 +137,10 @@ actor GitHubClient {
         let traffic = await self.value(from: trafficResult, into: &accumulator)
         let heatmap = await self.value(from: heatmapResult, into: &accumulator) ?? []
 
-        if case let .failure(err) = await graphResult { accumulator.absorb(err) }
-        let graph = try? await graphResult.get()
-
-        let finalIssues = graph?.openIssues ?? issues
-        let finalPulls = graph?.openPulls ?? pulls
-        let finalRelease = graph?.release ?? releaseREST
-        let finalActivity: ActivityEvent? = graph?.activity ?? activity
+        let finalIssues = issues
+        let finalPulls = pulls
+        let finalRelease = releaseREST
+        let finalActivity: ActivityEvent? = activity
 
         return Repository(
             id: "\(details.id)",
@@ -213,6 +191,7 @@ actor GitHubClient {
                 error: nil,
                 rateLimitedUntil: nil,
                 ciStatus: .unknown,
+                ciRunCount: nil,
                 openIssues: item.openIssuesCount,
                 openPulls: 0,
                 latestRelease: nil,
@@ -256,6 +235,7 @@ actor GitHubClient {
                 error: nil,
                 rateLimitedUntil: nil,
                 ciStatus: .unknown,
+                ciRunCount: nil,
                 openIssues: item.openIssuesCount,
                 openPulls: 0,
                 latestRelease: nil,
@@ -272,8 +252,6 @@ actor GitHubClient {
     }
 
     // MARK: - Internal REST helpers
-
-    private enum CountType { case issue, pullRequest }
 
     private func userReposSorted(limit: Int) async throws -> [RepoItem] {
         let token = try await validAccessToken()
@@ -352,29 +330,6 @@ actor GitHubClient {
         let url = self.apiHost.appending(path: "/repos/\(owner)/\(name)")
         let (data, _) = try await authorizedGet(url: url, token: token)
         return try self.jsonDecoder.decode(RepoItem.self, from: data)
-    }
-
-    private func openCount(owner: String, name: String, type: CountType) async throws -> Int {
-        let token = try await validAccessToken()
-        let typeQuery = (type == .issue) ? "type:issue" : "type:pr"
-        var components = URLComponents(url: apiHost.appending(path: "/search/issues"), resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "q", value: "repo:\(owner)/\(name)+state:open+\(typeQuery)"),
-            URLQueryItem(name: "per_page", value: "1")
-        ]
-        let (data, response) = try await authorizedGet(url: components.url!, token: token)
-        self.detectRateLimit(from: response)
-        let decoded = try jsonDecoder.decode(SearchIssuesResponse.self, from: data)
-        return decoded.totalCount
-    }
-
-    private func latestRelease(owner: String, name: String) async throws -> Release {
-        let token = try await validAccessToken()
-        let url = self.apiHost.appending(path: "/repos/\(owner)/\(name)/releases/latest")
-        let (data, response) = try await authorizedGet(url: url, token: token, allowedStatuses: [200, 304, 404])
-        guard response.statusCode != 404 else { throw URLError(.fileDoesNotExist) }
-        let rel = try jsonDecoder.decode(ReleaseResponse.self, from: data)
-        return Release(name: rel.name ?? rel.tagName, tag: rel.tagName, publishedAt: rel.publishedAt, url: rel.htmlUrl)
     }
 
     private func ciStatus(owner: String, name: String) async throws -> CIStatusDetails {

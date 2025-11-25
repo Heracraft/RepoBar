@@ -261,7 +261,7 @@ private struct RepoInputRow<Accessory: View>: View {
 
             var merged = Array(localMatches.prefix(8))
 
-            if !trimmed.isEmpty {
+            if trimmed.count >= 3 {
                 let remote = try await self.appState.github.searchRepositories(matching: trimmed)
                 merged = Self.merge(local: localMatches, remote: remote, limit: 8)
             }

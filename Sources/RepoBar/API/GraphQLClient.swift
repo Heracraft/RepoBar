@@ -28,13 +28,13 @@ actor GraphQLClient {
         self.tokenProvider = provider
     }
 
-    func fetchRepoSnapshot(owner: String, name: String) async throws -> GraphRepoSnapshot {
+    func repoSummary(owner: String, name: String) async throws -> RepoSummary {
         let token = try await tokenProvider?() ?? { throw URLError(.userAuthenticationRequired) }()
-        await diag.message("GraphQL RepoSnapshot \(owner)/\(name)")
+        await diag.message("GraphQL RepoSummary \(owner)/\(name)")
 
         let body = GraphQLRequest(
             query: """
-            query RepoSnapshot($owner: String!, $name: String!) {
+            query RepoSummary($owner: String!, $name: String!) {
               repository(owner: $owner, name: $name) {
                 name
                 releases(last: 1, orderBy: {field: CREATED_AT, direction: DESC}) {
@@ -61,7 +61,7 @@ actor GraphQLClient {
             throw URLError(.badServerResponse)
         }
 
-        let decoded = try decoder.decode(GraphQLResponse<RepoSnapshotData>.self, from: data)
+        let decoded = try decoder.decode(GraphQLResponse<RepoSummaryData>.self, from: data)
         guard let repo = decoded.data.repository else {
             await self.diag.message("GraphQL missing repository for \(owner)/\(name)")
             throw URLError(.cannotParseResponse)
@@ -71,11 +71,10 @@ actor GraphQLClient {
             Release(name: $0.name ?? $0.tagName, tag: $0.tagName, publishedAt: $0.publishedAt, url: $0.url)
         }
 
-        return GraphRepoSnapshot(
-            release: release,
+        return RepoSummary(
             openIssues: repo.issues.totalCount,
             openPulls: repo.pullRequests.totalCount,
-            activity: nil
+            release: release
         )
     }
 
@@ -130,11 +129,10 @@ actor GraphQLClient {
     }
 }
 
-struct GraphRepoSnapshot {
+struct RepoSummary {
+    let openIssues: Int
+    let openPulls: Int
     let release: Release?
-    let openIssues: Int?
-    let openPulls: Int?
-    let activity: ActivityEvent?
 }
 
 // MARK: - Wire models
@@ -148,12 +146,11 @@ private struct GraphQLResponse<T: Decodable>: Decodable {
     let data: T
 }
 
-private struct RepoSnapshotData: Decodable {
-    let repository: RepositoryNode?
+private struct RepoSummaryData: Decodable {
+    let repository: RepoSummaryNode?
 }
 
-private struct RepositoryNode: Decodable {
-    let name: String
+private struct RepoSummaryNode: Decodable {
     let releases: ReleaseConnection
     let issues: CountContainer
     let pullRequests: CountContainer
