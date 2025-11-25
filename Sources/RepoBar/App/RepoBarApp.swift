@@ -194,6 +194,7 @@ final class AppState: ObservableObject {
                     }
                     return repo
                 }
+                self.session.hasLoadedRepositories = true
                 self.session.rateLimitReset = nil
                 self.session.lastError = nil
             }
@@ -274,7 +275,7 @@ final class AppState: ObservableObject {
 
     /// Preloads the user's contribution heatmap so the header can render without remote images.
     func loadContributionHeatmapIfNeeded(for username: String) async {
-        guard self.session.settings.showContributionHeader, self.session.settings.showHeatmap else { return }
+        guard self.session.settings.showContributionHeader, self.session.settings.showHeatmap, self.session.hasLoadedRepositories else { return }
         if self.session.contributionUser == username, !self.session.contributionHeatmap.isEmpty { return }
         if let cached = ContributionCacheStore.load(),
            cached.username == username,
@@ -356,6 +357,7 @@ final class AppState: ObservableObject {
 final class Session: ObservableObject {
     @Published var account: AccountState = .loggedOut
     @Published var repositories: [Repository] = []
+    @Published var hasLoadedRepositories = false
     @Published var settings = UserSettings()
     @Published var rateLimitReset: Date?
     @Published var lastError: String?

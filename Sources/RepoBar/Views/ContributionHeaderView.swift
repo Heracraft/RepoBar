@@ -10,12 +10,12 @@ struct ContributionHeaderView: View {
     var body: some View {
         if self.session.settings.showHeatmap {
             VStack(alignment: .leading, spacing: 8) {
-                content
+                self.content
             }
             .task {
                 self.isLoading = true
                 self.failed = false
-                await self.appState.loadContributionHeatmapIfNeeded(for: username)
+                await self.appState.loadContributionHeatmapIfNeeded(for: self.username)
                 await MainActor.run {
                     self.isLoading = false
                     self.failed = self.session.contributionHeatmap.isEmpty
