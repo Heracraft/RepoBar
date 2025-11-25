@@ -109,6 +109,7 @@ actor GitHubClient {
             )
         }
 
+        // Run all expensive lookups in parallel; individual failures are folded into the accumulator.
         async let issuesResult: Result<Int, Error> = self.capture { try await self.openCount(
             owner: owner,
             name: name,
@@ -305,6 +306,7 @@ actor GitHubClient {
         var collected: [RepoItem] = []
 
         for page in 1 ... totalPages {
+            // Each page is a separate request; stop early if GitHub returns a short page.
             let token = try await validAccessToken()
             var components = URLComponents(url: apiHost.appending(path: "/user/repos"), resolvingAgainstBaseURL: false)!
             components.queryItems = [

@@ -229,6 +229,7 @@ private struct RepoInputRow<Accessory: View>: View {
         self.searchTask?.cancel()
         let query = self.text
         self.searchTask = Task {
+            // Debounce to avoid hammering GitHub as the user types.
             if !immediate { try? await Task.sleep(nanoseconds: 250_000_000) }
             await self.loadSuggestions(query: query)
         }

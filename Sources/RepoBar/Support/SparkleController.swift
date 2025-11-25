@@ -39,6 +39,7 @@ final class SparkleController {
             let bundleURL = Bundle.main.bundleURL
             let isBundledApp = bundleURL.pathExtension == "app"
             let isSigned = SparkleController.isDeveloperIDSigned(bundleURL: bundleURL)
+            // Mirror Trimmy: disable Sparkle entirely for unsigned/dev runs to avoid dialogs and signature errors.
             if isBundledApp, isSigned {
                 let saved = (UserDefaults.standard.object(forKey: self.defaultsKey) as? Bool) ?? true
                 let controller = SPUStandardUpdaterController(
