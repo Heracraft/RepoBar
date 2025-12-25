@@ -76,7 +76,9 @@ public actor GitHubClient {
 
     public func activityRepositories(limit: Int?) async throws -> [Repository] {
         let items = try await self.userReposPaginated(limit: limit)
-        return try await self.expandActivityItems(items)
+        let allowedOwners = try await self.allowedOwnerLogins()
+        let filtered = items.filter { allowedOwners.contains($0.owner.login.lowercased()) }
+        return try await self.expandActivityItems(filtered)
     }
 
     private func expandRepoItems(_ items: [RepoItem]) async throws -> [Repository] {
@@ -400,6 +402,52 @@ public actor GitHubClient {
             return Array(collected.prefix(limit))
         }
         return collected
+    }
+
+    private func allowedOwnerLogins() async throws -> Set<String> {
+        let user = try await self.currentUser()
+        var allowed = Set<String>()
+        allowed.insert(user.username.lowercased())
+        do {
+            let orgs = try await self.ownedOrgLogins()
+            for org in orgs {
+                allowed.insert(org.lowercased())
+            }
+        } catch {
+            await self.diag.message("Failed to fetch org memberships; filtering to user only.")
+        }
+        return allowed
+    }
+
+    private func ownedOrgLogins() async throws -> [String] {
+        let pageSize = 100
+        var collected: [OrgMembership] = []
+        var page = 1
+
+        while true {
+            let token = try await validAccessToken()
+            var components = URLComponents(
+                url: apiHost.appending(path: "/user/memberships/orgs"),
+                resolvingAgainstBaseURL: false
+            )!
+            components.queryItems = [
+                URLQueryItem(name: "per_page", value: "\(pageSize)"),
+                URLQueryItem(name: "page", value: "\(page)")
+            ]
+            let (data, _) = try await authorizedGet(url: components.url!, token: token)
+            let items = try jsonDecoder.decode([OrgMembership].self, from: data)
+            collected.append(contentsOf: items)
+
+            if items.count < pageSize {
+                break
+            }
+            page += 1
+        }
+
+        return collected
+            .filter { ($0.state ?? "active") == "active" }
+            .filter { $0.role == "admin" }
+            .map { $0.organization.login }
     }
 
     private func repoDetails(owner: String, name: String) async throws -> RepoItem {

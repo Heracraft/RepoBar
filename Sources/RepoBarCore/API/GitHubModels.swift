@@ -35,6 +35,16 @@ struct CurrentUser: Decodable {
     }
 }
 
+struct OrgMembership: Decodable {
+    let organization: Organization
+    let role: String
+    let state: String?
+
+    struct Organization: Decodable {
+        let login: String
+    }
+}
+
 struct SearchIssuesResponse: Decodable {
     let totalCount: Int
 
