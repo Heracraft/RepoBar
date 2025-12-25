@@ -10,6 +10,7 @@
 - repobarcli can emit clickable URLs in table output with `--url`.
 - Repo list sorting now uses the same activity/issue/PR/star ordering in the mac app and CLI.
 - Clicking a repo card opens the repository in the browser.
+- Repo detail cache now persists on disk to survive app restarts.
 
 ### Changed
 - OAuth/login helpers moved to RepoBarCore so app and CLI share the same keychain flow.

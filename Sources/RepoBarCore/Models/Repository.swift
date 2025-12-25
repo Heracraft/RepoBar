@@ -78,14 +78,14 @@ public struct Repository: Identifiable, Equatable, Sendable {
     }
 }
 
-public enum CIStatus: Equatable, Sendable {
+public enum CIStatus: Codable, Equatable, Sendable {
     case passing
     case failing
     case pending
     case unknown
 }
 
-public struct Release: Equatable, Sendable {
+public struct Release: Codable, Equatable, Sendable {
     public let name: String
     public let tag: String
     public let publishedAt: Date
@@ -99,7 +99,7 @@ public struct Release: Equatable, Sendable {
     }
 }
 
-public struct TrafficStats: Equatable, Sendable {
+public struct TrafficStats: Codable, Equatable, Sendable {
     public let uniqueVisitors: Int
     public let uniqueCloners: Int
 
@@ -109,7 +109,7 @@ public struct TrafficStats: Equatable, Sendable {
     }
 }
 
-public struct ActivityEvent: Equatable, Sendable {
+public struct ActivityEvent: Codable, Equatable, Sendable {
     public let title: String
     public let actor: String
     public let date: Date
@@ -135,7 +135,7 @@ public struct HeatmapCell: Identifiable, Equatable, Codable, Sendable {
     }
 }
 
-public struct CIStatusDetails: Sendable {
+public struct CIStatusDetails: Codable, Sendable {
     public let status: CIStatus
     public let runCount: Int?
 

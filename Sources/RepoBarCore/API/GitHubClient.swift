@@ -22,6 +22,7 @@ public actor GitHubClient {
     private var prefetchedReposExpiry: Date?
     private var latestRestRateLimit: RateLimitSnapshot?
     private var repoDetailCache: [String: RepoDetailCache] = [:]
+    private let repoDetailStore = RepoDetailCacheStore()
     private static let detailRefreshInterval: TimeInterval = 60 * 60
 
     public init() {}
@@ -139,7 +140,17 @@ public actor GitHubClient {
 
         let now = Date()
         let cacheKey = "\(details.owner.login)/\(details.name)"
-        var cache = self.repoDetailCache[cacheKey] ?? RepoDetailCache()
+        let owner = details.owner.login
+        let name = details.name
+        var cache: RepoDetailCache
+        if let inMemory = self.repoDetailCache[cacheKey] {
+            cache = inMemory
+        } else if let persisted = self.repoDetailStore.load(apiHost: self.apiHost, owner: owner, name: name) {
+            cache = persisted
+            self.repoDetailCache[cacheKey] = persisted
+        } else {
+            cache = RepoDetailCache()
+        }
         let cachedOpenPulls = cache.openPulls ?? 0
         let cachedCiDetails = cache.ciDetails ?? CIStatusDetails(status: .unknown, runCount: nil)
         let cachedActivity = cache.latestActivity
@@ -153,6 +164,7 @@ public actor GitHubClient {
         let shouldFetchTraffic = self.shouldFetch(cache.trafficFetchedAt, now: now)
         let shouldFetchHeatmap = self.shouldFetch(cache.heatmapFetchedAt, now: now)
         let shouldFetchRelease = self.shouldFetch(cache.releaseFetchedAt, now: now)
+        var didUpdateCache = false
 
         // Run all expensive lookups in parallel; individual failures are folded into the accumulator.
         async let openPullsResult: Result<Int, Error> = shouldFetchPulls
@@ -181,6 +193,7 @@ public actor GitHubClient {
             if shouldFetchPulls {
                 cache.openPulls = value
                 cache.openPullsFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -195,6 +208,7 @@ public actor GitHubClient {
             if shouldFetchCI {
                 cache.ciDetails = value
                 cache.ciFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -210,6 +224,7 @@ public actor GitHubClient {
             if shouldFetchActivity {
                 cache.latestActivity = value
                 cache.activityFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -223,6 +238,7 @@ public actor GitHubClient {
             if shouldFetchTraffic {
                 cache.traffic = value
                 cache.trafficFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -236,6 +252,7 @@ public actor GitHubClient {
             if shouldFetchHeatmap {
                 cache.heatmap = value
                 cache.heatmapFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -249,6 +266,7 @@ public actor GitHubClient {
             if shouldFetchRelease {
                 cache.latestRelease = value
                 cache.releaseFetchedAt = now
+                didUpdateCache = true
             }
         case let .failure(error):
             accumulator.absorb(error)
@@ -261,6 +279,9 @@ public actor GitHubClient {
         let finalActivity: ActivityEvent? = activity
 
         self.repoDetailCache[cacheKey] = cache
+        if didUpdateCache {
+            self.repoDetailStore.save(cache, apiHost: self.apiHost, owner: owner, name: name)
+        }
 
         return Repository(
             id: "\(details.id)",
@@ -369,6 +390,8 @@ public actor GitHubClient {
         self.lastRateLimitError = nil
         self.prefetchedRepos = []
         self.prefetchedReposExpiry = nil
+        self.repoDetailCache = [:]
+        self.repoDetailStore.clear()
     }
 
     public func diagnostics() async -> DiagnosticsSummary {
@@ -872,21 +895,6 @@ public actor GitHubClient {
         guard let lastFetched else { return true }
         return now.timeIntervalSince(lastFetched) >= Self.detailRefreshInterval
     }
-}
-
-private struct RepoDetailCache: Sendable {
-    var openPulls: Int?
-    var openPullsFetchedAt: Date?
-    var ciDetails: CIStatusDetails?
-    var ciFetchedAt: Date?
-    var latestActivity: ActivityEvent?
-    var activityFetchedAt: Date?
-    var traffic: TrafficStats?
-    var trafficFetchedAt: Date?
-    var heatmap: [HeatmapCell]?
-    var heatmapFetchedAt: Date?
-    var latestRelease: Release?
-    var releaseFetchedAt: Date?
 }
 
 private struct InstallationReposResponse: Decodable {
