@@ -16,5 +16,6 @@
 ### Changed
 - OAuth/login helpers moved to RepoBarCore so app and CLI share the same keychain flow.
 - repobarcli now uses Commander for command parsing and subcommand routing.
+- repobarcli debug builds are now codesigned with a stable identifier (no repeated Keychain prompts after rebuilds).
 - mac app now caches repo detail fetches for 1 hour to reduce API usage.
 - Token refresh now preserves OAuth client credentials and shows a clearer error when refresh fails.
