@@ -695,7 +695,8 @@ public actor GitHubClient {
     }
 
     /// Most recent release (including prereleases) ordered by creation date; skips drafts.
-    private func latestReleaseAny(owner: String, name: String) async throws -> Release {
+    /// Returns `nil` if the repository has no releases.
+    private func latestReleaseAny(owner: String, name: String) async throws -> Release? {
         let token = try await validAccessToken()
         var components = URLComponents(
             url: apiHost.appending(path: "/repos/\(owner)/\(name)/releases"),
@@ -705,8 +706,7 @@ public actor GitHubClient {
         let (data, response) = try await authorizedGet(url: components.url!, token: token, allowedStatuses: [200, 304, 404])
         guard response.statusCode != 404 else { throw URLError(.fileDoesNotExist) }
         let releases = try jsonDecoder.decode([ReleaseResponse].self, from: data)
-        guard let rel = Self.latestRelease(from: releases) else { throw URLError(.cannotParseResponse) }
-        return rel
+        return Self.latestRelease(from: releases)
     }
 
     /// Pick the newest non-draft release, preferring publishedAt over createdAt.
