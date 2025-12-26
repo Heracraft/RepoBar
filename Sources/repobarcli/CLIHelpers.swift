@@ -230,8 +230,7 @@ func printHelp(_ target: HelpTarget) {
         Options:
           --limit N    Max repositories to fetch (default: all accessible)
           --age DAYS   Only show repos with activity in the last N days (default: 365)
-          --name       Show owner/repo instead of URL (URL is default)
-          --url        (Deprecated) URL is the default
+          --name       Show plain owner/repo instead of a clickable repo link
           --release    Include latest release tag and date
           --event      Show activity event column (hidden by default)
           --json       Output JSON instead of formatted table
@@ -249,8 +248,7 @@ func printHelp(_ target: HelpTarget) {
         Options:
           --limit N    Max repositories to fetch (default: all accessible)
           --age DAYS   Only show repos with activity in the last N days (default: 365)
-          --name       Show owner/repo instead of URL (URL is default)
-          --url        (Deprecated) URL is the default
+          --name       Show plain owner/repo instead of a clickable repo link
           --release    Include latest release tag and date
           --event      Show activity event column (hidden by default)
           --json       Output JSON instead of formatted table
