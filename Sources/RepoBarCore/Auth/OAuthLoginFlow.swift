@@ -1,16 +1,50 @@
 import Foundation
 
 @MainActor
+protocol LoopbackServing: AnyObject {
+    func start() throws -> URL
+    func waitForCallback(timeout: TimeInterval) async throws -> (code: String, state: String)
+    func stop()
+}
+
+extension LoopbackServer: LoopbackServing {}
+
+@MainActor
 public struct OAuthLoginFlow {
     private let tokenStore: TokenStore
     private let openURL: @Sendable (URL) throws -> Void
+    private let dataProvider: @Sendable (URLRequest) async throws -> (Data, URLResponse)
+    private let makeLoopbackServer: (Int) -> LoopbackServing
+    private let stateProvider: @Sendable () -> String
 
     public init(
         tokenStore: TokenStore = .shared,
-        openURL: @escaping @Sendable (URL) throws -> Void
+        openURL: @escaping @Sendable (URL) throws -> Void,
+        dataProvider: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = { request in
+            try await URLSession.shared.data(for: request)
+        }
+    ) {
+        self.init(
+            tokenStore: tokenStore,
+            openURL: openURL,
+            dataProvider: dataProvider,
+            makeLoopbackServer: { port in LoopbackServer(port: port) },
+            stateProvider: { UUID().uuidString }
+        )
+    }
+
+    init(
+        tokenStore: TokenStore,
+        openURL: @escaping @Sendable (URL) throws -> Void,
+        dataProvider: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse),
+        makeLoopbackServer: @escaping (Int) -> LoopbackServing,
+        stateProvider: @escaping @Sendable () -> String
     ) {
         self.tokenStore = tokenStore
         self.openURL = openURL
+        self.dataProvider = dataProvider
+        self.makeLoopbackServer = makeLoopbackServer
+        self.stateProvider = stateProvider
     }
 
     public func login(
@@ -18,7 +52,8 @@ public struct OAuthLoginFlow {
         clientSecret: String,
         host: URL,
         loopbackPort: Int,
-        scope: String = "repo read:org"
+        scope: String = "repo read:org",
+        timeout: TimeInterval = 180
     ) async throws -> OAuthTokens {
         let normalizedHost = try Self.normalizeHost(host)
         let authBase = normalizedHost.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -26,9 +61,9 @@ public struct OAuthLoginFlow {
         let tokenEndpoint = URL(string: "\(authBase)/login/oauth/access_token")!
 
         let pkce = PKCE.generate()
-        let state = UUID().uuidString
+        let state = self.stateProvider()
 
-        let server = LoopbackServer(port: loopbackPort)
+        let server = self.makeLoopbackServer(loopbackPort)
         let redirectURL = try server.start()
 
         var components = URLComponents(url: authEndpoint, resolvingAgainstBaseURL: false)!
@@ -43,7 +78,7 @@ public struct OAuthLoginFlow {
         guard let authorizeURL = components.url else { throw URLError(.badURL) }
         try self.openURL(authorizeURL)
 
-        let result = try await server.waitForCallback(timeout: 180)
+        let result = try await server.waitForCallback(timeout: timeout)
         guard result.state == state else { throw URLError(.badServerResponse) }
 
         var tokenRequest = URLRequest(url: tokenEndpoint)
@@ -59,7 +94,7 @@ public struct OAuthLoginFlow {
             "code_verifier": pkce.verifier
         ])
 
-        let (data, response) = try await URLSession.shared.data(for: tokenRequest)
+        let (data, response) = try await self.dataProvider(tokenRequest)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
         let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
         let tokens = OAuthTokens(

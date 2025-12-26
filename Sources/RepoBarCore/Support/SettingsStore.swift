@@ -2,10 +2,12 @@ import Foundation
 
 /// Persists simple user settings in UserDefaults.
 public struct SettingsStore {
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
     private let key = "com.steipete.repobar.settings"
 
-    public init() {}
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     public func load() -> UserSettings {
         guard let data = defaults.data(forKey: key),

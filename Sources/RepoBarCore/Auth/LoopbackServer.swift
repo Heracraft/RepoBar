@@ -7,6 +7,7 @@ public final class LoopbackServer {
     private let port: UInt16
     private var listener: NWListener?
     private var continuation: CheckedContinuation<(code: String, state: String), Error>?
+    private var pendingResult: (code: String, state: String)?
 
     public init(port: Int) {
         self.port = UInt16(port)
@@ -25,6 +26,12 @@ public final class LoopbackServer {
     }
 
     public func waitForCallback(timeout: TimeInterval = 180) async throws -> (code: String, state: String) {
+        if let pendingResult {
+            self.pendingResult = nil
+            self.stop()
+            return pendingResult
+        }
+
         let timeoutTask = Task { @MainActor in
             try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
             if let continuation {
@@ -47,6 +54,7 @@ public final class LoopbackServer {
         self.listener?.cancel()
         self.listener = nil
         self.continuation = nil
+        self.pendingResult = nil
     }
 
     private func handle(connection: NWConnection) {
@@ -63,6 +71,8 @@ public final class LoopbackServer {
                 if let continuation {
                     continuation.resume(returning: parsed)
                     self.continuation = nil
+                } else {
+                    self.pendingResult = parsed
                 }
             }
         }
