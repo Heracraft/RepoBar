@@ -83,14 +83,14 @@ struct CLIOutputTests {
         )
         let row = RepoRow(repo: repo, activityDate: nil, activityLabel: "-", activityLine: "push")
 
-        let withRelease = tableLines([row], useColor: false, includeURL: false, includeRelease: true, baseHost: baseHost)
+        let withRelease = tableLines([row], useColor: false, includeURL: false, includeRelease: true, includeEvent: false, baseHost: baseHost)
             .joined(separator: "\n")
         #expect(withRelease.contains("REL"))
         #expect(withRelease.contains("RELEASED"))
         #expect(withRelease.contains("v1.0.0"))
         #expect(withRelease.contains(formatDateYYYYMMDD(releaseDate)))
 
-        let withoutRelease = tableLines([row], useColor: false, includeURL: false, includeRelease: false, baseHost: baseHost)
+        let withoutRelease = tableLines([row], useColor: false, includeURL: false, includeRelease: false, includeEvent: false, baseHost: baseHost)
             .joined(separator: "\n")
         #expect(withoutRelease.contains("REL") == false)
         #expect(withoutRelease.contains("RELEASED") == false)
@@ -127,5 +127,63 @@ struct CLIOutputTests {
         #expect(decoded.count == 1)
         #expect(decoded[0].latestRelease?.tag == "v0.1.0")
         #expect(decoded[0].latestRelease?.publishedAt == releaseDate)
+    }
+
+    @Test
+    func tableHidesEventColumnByDefault() throws {
+        let baseHost = URL(string: "https://github.com")!
+        let repo = Repository(
+            id: "1",
+            name: "RepoBar",
+            owner: "steipete",
+            sortOrder: nil,
+            error: nil,
+            rateLimitedUntil: nil,
+            ciStatus: .unknown,
+            ciRunCount: nil,
+            openIssues: 0,
+            openPulls: 0,
+            stars: 0,
+            pushedAt: nil,
+            latestRelease: nil,
+            latestActivity: nil,
+            traffic: nil,
+            heatmap: []
+        )
+        let row = RepoRow(repo: repo, activityDate: nil, activityLabel: "-", activityLine: "EVENTLINE-123")
+
+        let output = tableLines([row], useColor: false, includeURL: false, includeRelease: false, includeEvent: false, baseHost: baseHost)
+            .joined(separator: "\n")
+        #expect(output.contains("EVENT") == false)
+        #expect(output.contains("EVENTLINE-123") == false)
+    }
+
+    @Test
+    func tableShowsEventColumnWhenEnabled() throws {
+        let baseHost = URL(string: "https://github.com")!
+        let repo = Repository(
+            id: "1",
+            name: "RepoBar",
+            owner: "steipete",
+            sortOrder: nil,
+            error: nil,
+            rateLimitedUntil: nil,
+            ciStatus: .unknown,
+            ciRunCount: nil,
+            openIssues: 0,
+            openPulls: 0,
+            stars: 0,
+            pushedAt: nil,
+            latestRelease: nil,
+            latestActivity: nil,
+            traffic: nil,
+            heatmap: []
+        )
+        let row = RepoRow(repo: repo, activityDate: nil, activityLabel: "-", activityLine: "EVENTLINE-123")
+
+        let output = tableLines([row], useColor: false, includeURL: false, includeRelease: false, includeEvent: true, baseHost: baseHost)
+            .joined(separator: "\n")
+        #expect(output.contains("EVENT"))
+        #expect(output.contains("EVENTLINE-123"))
     }
 }
