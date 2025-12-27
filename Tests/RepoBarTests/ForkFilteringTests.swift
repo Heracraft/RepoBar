@@ -11,7 +11,7 @@ struct ForkFilteringTests {
             Self.repo(name: "B", isFork: true),
             Self.repo(name: "C", isFork: false)
         ]
-        let filtered = RepositoryFilter.apply(repos, includeForks: false)
+        let filtered = RepositoryFilter.apply(repos, includeForks: false, includeArchived: false)
         #expect(filtered.map(\.name) == ["A", "C"])
     }
 
@@ -24,6 +24,7 @@ struct ForkFilteringTests {
         let filtered = RepositoryFilter.apply(
             [pinnedFork, otherFork, normal],
             includeForks: false,
+            includeArchived: false,
             pinned: Set([pinnedFork.fullName])
         )
         #expect(filtered.map(\.fullName) == [pinnedFork.fullName, normal.fullName])
@@ -40,6 +41,7 @@ struct ForkFilteringTests {
             pinned: [pinnedFork.fullName],
             hidden: [],
             includeForks: false,
+            includeArchived: false,
             limit: 10
         )
 
