@@ -4,12 +4,22 @@ public enum RepositoryFilter {
     public static func apply(
         _ repos: [Repository],
         includeForks: Bool,
+        includeArchived: Bool,
         pinned: Set<String> = []
     ) -> [Repository] {
-        guard includeForks == false else { return repos }
-        guard pinned.isEmpty == false else { return repos.filter { $0.isFork == false } }
+        guard includeForks == false || includeArchived == false else { return repos }
+
+        if pinned.isEmpty {
+            return repos.filter { repo in
+                (includeForks || repo.isFork == false) && (includeArchived || repo.isArchived == false)
+            }
+        }
+
         return repos.filter { repo in
-            repo.isFork == false || pinned.contains(repo.fullName)
+            let isPinned = pinned.contains(repo.fullName)
+            let forkOK = includeForks || repo.isFork == false || isPinned
+            let archivedOK = includeArchived || repo.isArchived == false || isPinned
+            return forkOK && archivedOK
         }
     }
 }

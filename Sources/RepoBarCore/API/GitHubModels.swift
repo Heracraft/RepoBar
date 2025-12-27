@@ -9,6 +9,7 @@ struct RepoItem: Decodable {
     let name: String
     let fullName: String
     let fork: Bool
+    let archived: Bool
     let openIssuesCount: Int
     let stargazersCount: Int
     let pushedAt: Date?
@@ -20,6 +21,7 @@ struct RepoItem: Decodable {
         case id, name
         case fullName = "full_name"
         case fork
+        case archived
         case openIssuesCount = "open_issues_count"
         case stargazersCount = "stargazers_count"
         case pushedAt = "pushed_at"

@@ -5,6 +5,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
     public let name: String
     public let owner: String
     public let isFork: Bool
+    public let isArchived: Bool
     public let sortOrder: Int?
     public var error: String?
     public var rateLimitedUntil: Date?
@@ -24,6 +25,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
         name: String,
         owner: String,
         isFork: Bool = false,
+        isArchived: Bool = false,
         sortOrder: Int?,
         error: String?,
         rateLimitedUntil: Date?,
@@ -42,6 +44,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
         self.name = name
         self.owner = owner
         self.isFork = isFork
+        self.isArchived = isArchived
         self.sortOrder = sortOrder
         self.error = error
         self.rateLimitedUntil = rateLimitedUntil
@@ -65,6 +68,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
             name: self.name,
             owner: self.owner,
             isFork: self.isFork,
+            isArchived: self.isArchived,
             sortOrder: order,
             error: self.error,
             rateLimitedUntil: self.rateLimitedUntil,
