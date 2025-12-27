@@ -37,6 +37,9 @@ struct ReposCommand: CommanderRunnableCommand {
     @Flag(names: [.customLong("event")], help: "Show activity event column (hidden by default)")
     var includeEvent: Bool = false
 
+    @Flag(names: [.customLong("forks"), .customLong("include-forks")], help: "Include forked repositories (hidden by default)")
+    var includeForks: Bool = false
+
     @Option(name: .customLong("sort"), help: "Sort by activity, issues, prs, stars, repo, or event")
     var sort: RepositorySortKey = .activity
 
@@ -57,6 +60,7 @@ struct ReposCommand: CommanderRunnableCommand {
         self.sort = try values.decodeOption("sort") ?? .activity
         self.includeRelease = values.flag("includeRelease")
         self.includeEvent = values.flag("includeEvent")
+        self.includeForks = values.flag("includeForks")
     }
 
     mutating func run() async throws {
@@ -97,7 +101,8 @@ struct ReposCommand: CommanderRunnableCommand {
             guard let date = repo.activityDate else { return false }
             return date >= cutoff
         }
-        var sorted = RepositorySort.sorted(filtered, sortKey: self.sort)
+        let withoutForks = RepositoryFilter.apply(filtered, includeForks: self.includeForks)
+        var sorted = RepositorySort.sorted(withoutForks, sortKey: self.sort)
         if self.includeRelease {
             sorted = try await self.attachLatestReleases(to: sorted, client: client)
         }
