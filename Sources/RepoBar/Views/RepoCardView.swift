@@ -118,9 +118,19 @@ struct RepoCardView: View {
     private var activity: some View {
         if let activity = repo.activityLine, let url = repo.activityURL {
             Button { self.open(url: url) } label: {
-                Label(activity, systemImage: "text.bubble")
-                    .font(.caption)
-                    .lineLimit(2)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label(activity, systemImage: "text.bubble")
+                        .font(.caption)
+                        .lineLimit(2)
+                        .layoutPriority(1)
+                    Spacer(minLength: 6)
+                    if let age = self.repo.latestActivityAge {
+                        Text(age)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
             .buttonStyle(.link)
         }

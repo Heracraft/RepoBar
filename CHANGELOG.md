@@ -44,6 +44,8 @@
 - Repo submenus now list remaining repository details like CI run count and traffic stats when available.
 - Repo submenus now include the last 10 recent activity events with quick links.
 - Activity event links now deep-link to stars, releases, forks, and commits when available.
+- Recent activity now includes action/number labels, repo targets, and avatar icons.
+- Activity row now shows the latest activity timestamp aligned to the right.
 
 ### Fixed
 - Settings now open via SwiftUI `openSettings` from the MenuBarExtra.

@@ -439,15 +439,14 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     }
 
     private func repoActivityItems(for repo: RepositoryViewModel) -> [NSMenuItem] {
-        let now = Date()
-        return repo.activityEvents.prefix(10).map { event in
-            let when = RelativeFormatter.string(from: event.date, relativeTo: now)
-            let title = "\(when) • \(event.actor): \(event.title)"
-            return self.actionItem(
-                title: title,
-                action: #selector(self.openActivityEvent),
-                represented: event.url,
-                systemImage: self.activitySymbolName(for: event))
+        repo.activityEvents.prefix(10).map { event in
+            let view = ActivityMenuItemView(
+                event: event,
+                symbolName: self.activitySymbolName(for: event)
+            ) { [weak self] in
+                self?.open(url: event.url)
+            }
+            return self.viewItem(for: view, enabled: true, highlightable: true)
         }
     }
 

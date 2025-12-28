@@ -96,10 +96,20 @@ struct RepoMenuCardView: View {
     @ViewBuilder
     private var activity: some View {
         if let activity = repo.activityLine {
-            Label(activity, systemImage: "text.bubble")
-                .font(.caption)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                .lineLimit(2)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label(activity, systemImage: "text.bubble")
+                    .font(.caption)
+                    .lineLimit(2)
+                    .layoutPriority(1)
+                Spacer(minLength: 6)
+                if let age = self.repo.latestActivityAge {
+                    Text(age)
+                        .font(.caption2)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                }
+            }
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
         }
     }
 
@@ -190,6 +200,66 @@ struct MenuPaddedSeparatorView: View {
             .frame(height: 1)
             .padding(.horizontal, self.horizontalPadding)
             .padding(.vertical, self.verticalPadding)
+    }
+}
+
+struct ActivityMenuItemView: View {
+    let event: ActivityEvent
+    let symbolName: String
+    let onOpen: () -> Void
+    @Environment(\.menuItemHighlighted) private var isHighlighted
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: self.symbolName)
+                .font(.caption)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+            self.avatar
+            Text(self.labelText)
+                .font(.caption)
+                .foregroundStyle(MenuHighlightStyle.primary(self.isHighlighted))
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture { self.onOpen() }
+    }
+
+    private var labelText: String {
+        let when = RelativeFormatter.string(from: self.event.date, relativeTo: Date())
+        return "\(when) • \(self.event.actor): \(self.event.title)"
+    }
+
+    @ViewBuilder
+    private var avatar: some View {
+        if let url = self.event.actorAvatarURL {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                Circle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary)
+                    )
+            }
+            .frame(width: 16, height: 16)
+            .clipShape(Circle())
+        } else {
+            Circle()
+                .fill(Color(nsColor: .separatorColor))
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.secondary)
+                )
+                .frame(width: 16, height: 16)
+        }
     }
 }
 

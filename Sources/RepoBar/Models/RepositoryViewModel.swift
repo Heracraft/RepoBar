@@ -19,6 +19,7 @@ struct RepositoryViewModel: Identifiable, Equatable {
     let activityLine: String?
     let activityURL: URL?
     let activityEvents: [ActivityEvent]
+    let latestActivityAge: String?
     let heatmap: [HeatmapCell]
     let sortOrder: Int?
     let error: String?
@@ -58,5 +59,10 @@ struct RepositoryViewModel: Identifiable, Equatable {
         self.activityLine = repo.activityLine
         self.activityURL = repo.activityURL
         self.activityEvents = repo.activityEvents
+        if let activityDate = repo.latestActivity?.date ?? repo.activityEvents.first?.date {
+            self.latestActivityAge = RelativeFormatter.string(from: activityDate, relativeTo: now)
+        } else {
+            self.latestActivityAge = nil
+        }
     }
 }

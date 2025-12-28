@@ -7,7 +7,7 @@ struct EventLabelTests {
     func pullRequestEventHasReadableTitle() {
         let event = RepoEvent(
             type: "PullRequestEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(action: nil, comment: nil, issue: nil, pullRequest: nil),
             createdAt: Date()
         )
@@ -18,7 +18,7 @@ struct EventLabelTests {
     func actionGetsAppendedToTitle() {
         let event = RepoEvent(
             type: "IssuesEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(action: "opened", comment: nil, issue: nil, pullRequest: nil),
             createdAt: Date()
         )
@@ -29,7 +29,7 @@ struct EventLabelTests {
     func unknownEventTypeFallsBackToReadableName() {
         let event = RepoEvent(
             type: "ProjectCardEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(action: nil, comment: nil, issue: nil, pullRequest: nil),
             createdAt: Date()
         )
@@ -40,7 +40,7 @@ struct EventLabelTests {
     func activityEventUsesIssueTitleAndRepoFallback() {
         let event = RepoEvent(
             type: "IssuesEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(
                 action: "opened",
                 comment: nil,
@@ -59,7 +59,7 @@ struct EventLabelTests {
     func activityEventUsesStargazerLinkForWatchEvents() {
         let event = RepoEvent(
             type: "WatchEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(action: nil, comment: nil, issue: nil, pullRequest: nil),
             createdAt: Date()
         )
@@ -71,7 +71,7 @@ struct EventLabelTests {
     func activityEventUsesCommitLinkForPushEvents() {
         let event = RepoEvent(
             type: "PushEvent",
-            actor: EventActor(login: "octo"),
+            actor: EventActor(login: "octo", avatarUrl: nil),
             payload: EventPayload(
                 action: nil,
                 comment: nil,
@@ -80,6 +80,7 @@ struct EventLabelTests {
                 release: nil,
                 forkee: nil,
                 ref: nil,
+                refType: nil,
                 head: "abc123",
                 commits: nil
             ),

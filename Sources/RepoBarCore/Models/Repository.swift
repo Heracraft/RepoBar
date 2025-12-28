@@ -128,13 +128,22 @@ public struct TrafficStats: Codable, Equatable, Sendable {
 public struct ActivityEvent: Codable, Equatable, Sendable {
     public let title: String
     public let actor: String
+    public let actorAvatarURL: URL?
     public let date: Date
     public let url: URL
     public let eventType: String?
 
-    public init(title: String, actor: String, date: Date, url: URL, eventType: String? = nil) {
+    public init(
+        title: String,
+        actor: String,
+        actorAvatarURL: URL? = nil,
+        date: Date,
+        url: URL,
+        eventType: String? = nil
+    ) {
         self.title = title
         self.actor = actor
+        self.actorAvatarURL = actorAvatarURL
         self.date = date
         self.url = url
         self.eventType = eventType
