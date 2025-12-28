@@ -37,9 +37,9 @@ final class StatusBarMenuBuilder {
                 session: session,
                 appState: self.appState
             )
-                .padding(.horizontal, 10)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
+                .padding(.horizontal, MenuStyle.headerHorizontalPadding)
+                .padding(.top, MenuStyle.headerTopPadding)
+                .padding(.bottom, MenuStyle.headerBottomPadding)
             menu.addItem(self.viewItem(for: header, enabled: true, highlightable: true))
             menu.addItem(.separator())
         }
@@ -47,8 +47,8 @@ final class StatusBarMenuBuilder {
         switch session.account {
         case .loggedOut:
             let loggedOut = MenuLoggedOutView()
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, MenuStyle.sectionHorizontalPadding)
+                .padding(.vertical, MenuStyle.sectionVerticalPadding)
             menu.addItem(self.viewItem(for: loggedOut, enabled: false))
             menu.addItem(.separator())
             let signInItem = self.actionItem(title: "Sign in to GitHub", action: #selector(self.target.signIn))
@@ -60,8 +60,8 @@ final class StatusBarMenuBuilder {
             return
         case .loggingIn:
             let loggedOut = MenuLoggedOutView()
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, MenuStyle.sectionHorizontalPadding)
+                .padding(.vertical, MenuStyle.sectionVerticalPadding)
             menu.addItem(self.viewItem(for: loggedOut, enabled: false))
             menu.addItem(.separator())
             let signInItem = self.actionItem(title: "Signing in…", action: #selector(self.target.signIn))
@@ -78,14 +78,14 @@ final class StatusBarMenuBuilder {
 
         if let reset = session.rateLimitReset {
             let banner = RateLimitBanner(reset: reset)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.horizontal, MenuStyle.bannerHorizontalPadding)
+                .padding(.vertical, MenuStyle.bannerVerticalPadding)
             menu.addItem(self.viewItem(for: banner, enabled: false))
             menu.addItem(.separator())
         } else if let error = session.lastError {
             let banner = ErrorBanner(message: error)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.horizontal, MenuStyle.bannerHorizontalPadding)
+                .padding(.vertical, MenuStyle.bannerVerticalPadding)
             menu.addItem(self.viewItem(for: banner, enabled: false))
             menu.addItem(.separator())
         }
@@ -103,8 +103,8 @@ final class StatusBarMenuBuilder {
         if repos.isEmpty {
             let (title, subtitle) = self.emptyStateMessage(for: session)
             let emptyState = MenuEmptyStateView(title: title, subtitle: subtitle)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, MenuStyle.sectionHorizontalPadding)
+                .padding(.vertical, MenuStyle.sectionVerticalPadding)
             menu.addItem(self.viewItem(for: emptyState, enabled: false))
         } else {
             for (index, repo) in repos.enumerated() {
@@ -184,9 +184,13 @@ final class StatusBarMenuBuilder {
 
         if settings.heatmap.display == .submenu, !repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(repo.heatmap, range: self.appState.session.heatmapRange)
-            let heatmap = HeatmapView(cells: filtered, accentTone: settings.appearance.accentTone, height: 44)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+            let heatmap = HeatmapView(
+                cells: filtered,
+                accentTone: settings.appearance.accentTone,
+                height: MenuStyle.heatmapSubmenuHeight
+            )
+                .padding(.horizontal, MenuStyle.cardHorizontalPadding)
+                .padding(.vertical, MenuStyle.cardVerticalPadding)
             menu.addItem(.separator())
             menu.addItem(self.viewItem(for: heatmap, enabled: false))
         }

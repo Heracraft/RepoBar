@@ -33,14 +33,14 @@ struct RepoMenuCardView: View {
                 self.errorOrLimit
                 self.heatmap
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, MenuStyle.cardHorizontalPadding)
+            .padding(.vertical, MenuStyle.cardVerticalPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             if self.showsSeparator {
                 Rectangle()
                     .fill(Color(nsColor: .separatorColor))
                     .frame(height: 1)
-                    .padding(.leading, 10)
+                    .padding(.leading, MenuStyle.cardSeparatorInset)
             }
         }
         .contentShape(Rectangle())
@@ -139,11 +139,11 @@ struct RepoMenuCardView: View {
     private var heatmap: some View {
         if self.showHeatmap, !self.repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(self.repo.heatmap, range: self.heatmapRange)
-            HeatmapView(cells: filtered, accentTone: self.accentTone, height: 48)
+            HeatmapView(cells: filtered, accentTone: self.accentTone, height: MenuStyle.heatmapInlineHeight)
         }
     }
 
-    private var verticalSpacing: CGFloat { 6 }
+    private var verticalSpacing: CGFloat { MenuStyle.cardSpacing }
 
     private var isLightAppearance: Bool {
         NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua
@@ -463,8 +463,8 @@ struct MenuRepoFiltersView: View {
             .controlSize(.small)
             .fixedSize()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 3)
+        .padding(.horizontal, MenuStyle.filterHorizontalPadding)
+        .padding(.vertical, MenuStyle.filterVerticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: self.session.settings.repoList.menuSortKey) { _, _ in
             NotificationCenter.default.post(name: .menuFiltersDidChange, object: nil)

@@ -83,7 +83,7 @@ Last updated: 2025-12-28
 
 ## UI Consistency
 
-### [ ] 10) Menu style system
+### [x] 10) Menu style system
 - `MenuStyle` for fonts, spacing, colors, insets.
 - Avoid scattered padding tweaks in view code.
 
