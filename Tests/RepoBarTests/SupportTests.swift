@@ -8,15 +8,13 @@ struct RefreshAndBackoffTests {
     @Test
     func forceRefreshTriggersTick() async throws {
         let scheduler = RefreshScheduler()
-        let flag = FlagBox()
-        scheduler.configure(interval: 60) {
-            Task { await flag.set(true) }
+        var fired = false
+        scheduler.configure(interval: 60, fireImmediately: false) {
+            fired = true
         }
 
         scheduler.forceRefresh()
-        try await Task.sleep(nanoseconds: 50_000_000)
-
-        #expect(await flag.value)
+        #expect(fired)
     }
 
     @Test
@@ -57,12 +55,4 @@ struct RefreshAndBackoffTests {
         #expect(parsed?.code == "abc")
         #expect(parsed?.state == "xyz")
     }
-}
-
-actor FlagBox {
-    private var flag = false
-
-    func set(_ value: Bool) { self.flag = value }
-
-    var value: Bool { self.flag }
 }

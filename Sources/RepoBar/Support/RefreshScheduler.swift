@@ -7,19 +7,21 @@ final class RefreshScheduler: ObservableObject {
     private var interval: TimeInterval = RefreshInterval.fiveMinutes.seconds
     private var tickHandler: (() -> Void)?
 
-    func configure(interval: TimeInterval, tick: @escaping () -> Void) {
+    func configure(interval: TimeInterval, fireImmediately: Bool = true, tick: @escaping () -> Void) {
         self.interval = interval
         self.tickHandler = tick
-        self.restart()
+        self.restart(fireImmediately: fireImmediately)
     }
 
-    func restart() {
+    func restart(fireImmediately: Bool = true) {
         self.timer?.invalidate()
         self.timer = Timer.scheduledTimer(withTimeInterval: self.interval, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in self.tickHandler?() }
         }
-        self.timer?.fire()
+        if fireImmediately {
+            self.timer?.fire()
+        }
     }
 
     func forceRefresh() {
