@@ -9,13 +9,13 @@ struct RepositoryPipelineTests {
         let repos = [
             Self.makeRepo("a/one", issues: 2, pulls: 1),
             Self.makeRepo("b/two", issues: 0, pulls: 2),
-            Self.makeRepo("c/three", issues: 1, pulls: 0),
+            Self.makeRepo("c/three", issues: 0, pulls: 0),
         ]
         let query = RepositoryQuery(
             onlyWith: RepositoryOnlyWith(requireIssues: true, requirePRs: true)
         )
         let result = RepositoryPipeline.apply(repos, query: query)
-        #expect(result.map(\.fullName) == ["a/one"])
+        #expect(result.map(\.fullName) == ["a/one", "b/two"])
     }
 
     @Test("Pinned priority overrides sort order")
