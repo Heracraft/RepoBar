@@ -276,7 +276,7 @@ struct MenuRepoFiltersView: View {
     @EnvironmentObject var session: Session
 
     var body: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: 8) {
             Picker("Scope", selection: self.$session.menuRepoScope) {
                 ForEach(MenuRepoScope.allCases, id: \.self) { scope in
                     Text(scope.label).tag(scope)
@@ -285,6 +285,9 @@ struct MenuRepoFiltersView: View {
             .labelsHidden()
             .pickerStyle(.segmented)
             .controlSize(.mini)
+            .fixedSize()
+
+            Spacer(minLength: 8)
 
             Picker("Filter", selection: self.$session.menuRepoFilter) {
                 ForEach(MenuRepoFilter.allCases, id: \.self) { filter in
@@ -294,6 +297,7 @@ struct MenuRepoFiltersView: View {
             .labelsHidden()
             .pickerStyle(.segmented)
             .controlSize(.mini)
+            .fixedSize()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

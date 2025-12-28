@@ -32,6 +32,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         AppActions.openSettings()
     }
 
+    @objc private func openAbout() {
+        AppActions.openAbout()
+    }
+
     @objc private func checkForUpdates() {
         SparkleController.shared.checkForUpdates()
     }
@@ -184,7 +188,8 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 .environmentObject(session)
                 .environmentObject(self.appState)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 2)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
             menu.addItem(self.viewItem(for: header, enabled: false))
             menu.addItem(.separator())
         }
@@ -199,6 +204,8 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             let signInItem = self.actionItem(title: "Sign in to GitHub", action: #selector(self.signIn))
             menu.addItem(signInItem)
             menu.addItem(.separator())
+            menu.addItem(self.actionItem(title: "About RepoBar", action: #selector(self.openAbout)))
+            menu.addItem(.separator())
             menu.addItem(self.actionItem(title: "Preferences…", action: #selector(self.openPreferences), keyEquivalent: ","))
             menu.addItem(self.actionItem(title: "Quit RepoBar", action: #selector(self.quitApp), keyEquivalent: "q"))
             return
@@ -211,6 +218,8 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             let signInItem = self.actionItem(title: "Signing in…", action: #selector(self.signIn))
             signInItem.isEnabled = false
             menu.addItem(signInItem)
+            menu.addItem(.separator())
+            menu.addItem(self.actionItem(title: "About RepoBar", action: #selector(self.openAbout)))
             menu.addItem(.separator())
             menu.addItem(self.actionItem(title: "Preferences…", action: #selector(self.openPreferences), keyEquivalent: ","))
             menu.addItem(self.actionItem(title: "Quit RepoBar", action: #selector(self.quitApp), keyEquivalent: "q"))
@@ -264,11 +273,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        menu.addItem(self.actionItem(title: "About RepoBar", action: #selector(self.openAbout)))
+        menu.addItem(.separator())
         menu.addItem(self.actionItem(title: "Preferences…", action: #selector(self.openPreferences), keyEquivalent: ","))
         if SparkleController.shared.updateStatus.isUpdateReady {
             menu.addItem(self.actionItem(title: "Restart to update", action: #selector(self.checkForUpdates)))
         }
-        menu.addItem(.separator())
         menu.addItem(self.actionItem(title: "Quit RepoBar", action: #selector(self.quitApp), keyEquivalent: "q"))
     }
 
