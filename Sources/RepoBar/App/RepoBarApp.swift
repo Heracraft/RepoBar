@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         NSApp.setActivationPolicy(.accessory)
+        SettingsWindowController.shared.configure(appState: self.appState)
         self.statusBarController = StatusBarController(appState: self.appState)
     }
 

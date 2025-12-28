@@ -29,6 +29,7 @@
 - Menu filters use compact segmented controls and the update prompt is labeled “Restart to update”.
 - Menu filters now sit on a single row and the menu includes an About item.
 - Menu filter toggles now refresh the menu immediately.
+- Preferences now open via a dedicated settings window controller.
 
 ### Fixed
 - mac app no longer crashes on launch due to the hidden keepalive window; Settings opens via AppKit action.
