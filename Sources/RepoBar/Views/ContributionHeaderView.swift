@@ -10,7 +10,7 @@ struct ContributionHeaderView: View {
 
     var body: some View {
         if self.session.settings.showHeatmap {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 self.content
             }
             .task(id: self.session.hasLoadedRepositories) {
@@ -30,10 +30,10 @@ struct ContributionHeaderView: View {
     private var content: some View {
         if !self.session.hasLoadedRepositories {
             ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 120, alignment: .center)
+                .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 72, alignment: .center)
         } else if self.isLoading {
             ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 120, alignment: .center)
+                .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 72, alignment: .center)
         } else if self.failed {
             VStack(spacing: 6) {
                 Text(self.session.contributionError ?? "Unable to load contributions right now.")
@@ -46,11 +46,12 @@ struct ContributionHeaderView: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .center)
         } else {
             let filtered = HeatmapFilter.filter(self.session.contributionHeatmap, span: self.session.settings.heatmapSpan)
             HeatmapView(cells: filtered, accentTone: self.session.settings.accentTone)
-                .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 120, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 72, alignment: .leading)
+                .padding(.horizontal, -8)
                 .accessibilityLabel("Contribution graph for \(self.username)")
         }
     }

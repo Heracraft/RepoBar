@@ -5,6 +5,7 @@ struct HeatmapView: View {
     let cells: [HeatmapCell]
     let accentTone: AccentTone
     private let rows = 7
+    private let minColumns = 53
     private let spacing: CGFloat = 0.5
     @Environment(\.menuItemHighlighted) private var isHighlighted
     private var summary: String {
@@ -36,7 +37,7 @@ struct HeatmapView: View {
             }
         }
         .aspectRatio(CGFloat(columns) / CGFloat(self.rows), contentMode: .fit)
-        .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 80, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 28, maxHeight: 60, alignment: .leading)
         .accessibilityLabel(self.summary)
         .accessibilityElement(children: .ignore)
     }
@@ -54,39 +55,39 @@ struct HeatmapView: View {
 
     private func palette() -> [Color] {
         if self.isHighlighted {
-            let base = Color(nsColor: .systemGreen)
+            let base = Color(nsColor: .selectedMenuItemTextColor)
             return [
-                base.opacity(0.08),
-                base.opacity(0.18),
-                base.opacity(0.3),
-                base.opacity(0.45),
-                base.opacity(0.6)
+                base.opacity(0.14),
+                base.opacity(0.24),
+                base.opacity(0.38),
+                base.opacity(0.52),
+                base.opacity(0.7)
             ]
         }
         switch self.accentTone {
         case .githubGreen:
             return [
-                Color(nsColor: .controlBackgroundColor),
-                Color(red: 0.78, green: 0.93, blue: 0.79),
-                Color(red: 0.51, green: 0.82, blue: 0.56),
-                Color(red: 0.2, green: 0.65, blue: 0.32),
-                Color(red: 0.12, green: 0.45, blue: 0.2)
+                Color(nsColor: .quaternaryLabelColor),
+                Color(red: 0.74, green: 0.86, blue: 0.75).opacity(0.6),
+                Color(red: 0.56, green: 0.76, blue: 0.6).opacity(0.65),
+                Color(red: 0.3, green: 0.62, blue: 0.38).opacity(0.7),
+                Color(red: 0.18, green: 0.46, blue: 0.24).opacity(0.75)
             ]
         case .system:
             let accent = Color.accentColor
             return [
-                Color(nsColor: .controlBackgroundColor),
-                accent.opacity(0.25),
-                accent.opacity(0.45),
-                accent.opacity(0.7),
-                accent.opacity(0.9)
+                Color(nsColor: .quaternaryLabelColor),
+                accent.opacity(0.22),
+                accent.opacity(0.36),
+                accent.opacity(0.5),
+                accent.opacity(0.65)
             ]
         }
     }
 
     private var columnCount: Int {
         let columns = Int(ceil(Double(self.cells.count) / Double(self.rows)))
-        return max(columns, 1)
+        return max(columns, self.minColumns)
     }
 
     private func cellSide(for size: CGSize) -> CGFloat {

@@ -4,8 +4,8 @@ import SwiftUI
 
 @MainActor
 final class StatusBarMenuManager: NSObject, NSMenuDelegate {
-    private static let menuMinWidth: CGFloat = 360
-    private static let menuMaxWidth: CGFloat = 440
+    private static let menuMinWidth: CGFloat = 260
+    private static let menuMaxWidth: CGFloat = 340
 
     private let appState: AppState
     private var mainMenu: NSMenu?
@@ -190,8 +190,8 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             let header = ContributionHeaderView(username: username)
                 .environmentObject(session)
                 .environmentObject(self.appState)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             menu.addItem(self.viewItem(for: header, enabled: false))
             menu.addItem(.separator())
         }
@@ -251,11 +251,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 .padding(.vertical, 8)
             menu.addItem(self.viewItem(for: emptyState, enabled: false))
         } else {
-            for repo in repos {
+            for (index, repo) in repos.enumerated() {
                 let isPinned = settings.pinnedRepositories.contains(repo.title)
                 let card = RepoMenuCardView(
                     repo: repo,
                     isPinned: isPinned,
+                    showsSeparator: index < repos.count - 1,
                     showHeatmap: settings.showHeatmap,
                     heatmapSpan: settings.heatmapSpan,
                     accentTone: settings.accentTone

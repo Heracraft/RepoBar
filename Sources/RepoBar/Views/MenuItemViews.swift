@@ -15,6 +15,7 @@ extension EnvironmentValues {
 struct RepoMenuCardView: View {
     let repo: RepositoryViewModel
     let isPinned: Bool
+    let showsSeparator: Bool
     let showHeatmap: Bool
     let heatmapSpan: HeatmapSpan
     let accentTone: AccentTone
@@ -30,8 +31,14 @@ struct RepoMenuCardView: View {
                 self.heatmap
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
+            if self.showsSeparator {
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(height: 1)
+                    .padding(.leading, 10)
+            }
         }
     }
 
@@ -41,7 +48,7 @@ struct RepoMenuCardView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(self.repo.title)
-                        .font(.headline)
+                        .font(.subheadline)
                         .lineLimit(1)
                     if self.isPinned {
                         Image(systemName: "pin.fill")
@@ -61,7 +68,7 @@ struct RepoMenuCardView: View {
 
     @ViewBuilder
     private var stats: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             MenuCIBadge(status: self.repo.ciStatus, runCount: self.repo.ciRunCount)
             MenuStatBadge(label: "Issues", value: self.repo.issues)
             MenuStatBadge(label: "PRs", value: self.repo.pulls)
@@ -111,10 +118,11 @@ struct RepoMenuCardView: View {
         if self.showHeatmap, !self.repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(self.repo.heatmap, span: self.heatmapSpan)
             HeatmapView(cells: filtered, accentTone: self.accentTone)
+                .padding(.horizontal, -10)
         }
     }
 
-    private var verticalSpacing: CGFloat { 1 }
+    private var verticalSpacing: CGFloat { 3 }
 }
 
 struct MenuStatBadge: View {
