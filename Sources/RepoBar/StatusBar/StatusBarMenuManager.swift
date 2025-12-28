@@ -730,7 +730,10 @@ private final class MenuItemHostingView: NSHostingView<AnyView>, MenuItemMeasuri
     private let highlightState: MenuItemHighlightState?
 
     override var allowsVibrancy: Bool { true }
-    override var focusRingType: NSFocusRingType { .none }
+    override var focusRingType: NSFocusRingType {
+        get { .none }
+        set { }
+    }
 
     override var intrinsicContentSize: NSSize {
         let size = super.intrinsicContentSize
