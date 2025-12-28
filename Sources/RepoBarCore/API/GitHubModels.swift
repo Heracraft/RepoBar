@@ -159,9 +159,14 @@ struct EventPayload: Decodable {
     let comment: EventComment?
     let issue: EventIssue?
     let pullRequest: EventPullRequest?
+    let release: EventRelease? = nil
+    let forkee: EventForkee? = nil
+    let ref: String? = nil
+    let head: String? = nil
+    let commits: [EventCommit]? = nil
 
     enum CodingKeys: String, CodingKey {
-        case action, comment, issue
+        case action, comment, issue, release, forkee, ref, head, commits
         case pullRequest = "pull_request"
     }
 }
@@ -202,6 +207,26 @@ struct EventPullRequest: Decodable {
     }
 }
 
+struct EventRelease: Decodable {
+    let htmlUrl: URL?
+
+    enum CodingKeys: String, CodingKey {
+        case htmlUrl = "html_url"
+    }
+}
+
+struct EventForkee: Decodable {
+    let htmlUrl: URL?
+
+    enum CodingKeys: String, CodingKey {
+        case htmlUrl = "html_url"
+    }
+}
+
+struct EventCommit: Decodable {
+    let sha: String
+}
+
 extension RepoEvent {
     var displayTitle: String {
         let base = Self.displayName(for: self.type)
@@ -211,7 +236,13 @@ extension RepoEvent {
     }
 
     var hasRichPayload: Bool {
-        self.payload.comment != nil || self.payload.issue != nil || self.payload.pullRequest != nil
+        self.payload.comment != nil
+            || self.payload.issue != nil
+            || self.payload.pullRequest != nil
+            || self.payload.release != nil
+            || self.payload.forkee != nil
+            || self.payload.head != nil
+            || (self.payload.commits?.isEmpty == false)
     }
 
     func activityEvent(owner: String, name: String) -> ActivityEvent {
@@ -219,10 +250,17 @@ extension RepoEvent {
             ?? self.payload.issue?.title
             ?? self.payload.pullRequest?.title
             ?? self.displayTitle
-        let fallbackURL = URL(string: "https://github.com/\(owner)/\(name)")!
+        let repoURL = URL(string: "https://github.com/\(owner)/\(name)")!
+        let starURL = repoURL.appending(path: "stargazers")
+        let fallbackURL = (self.type == "WatchEvent") ? starURL : repoURL
+        let commitSHA = self.payload.head ?? self.payload.commits?.first?.sha
+        let commitURL = commitSHA.map { repoURL.appending(path: "commit").appending(path: $0) }
         let url = self.payload.comment?.htmlUrl
             ?? self.payload.issue?.htmlUrl
             ?? self.payload.pullRequest?.htmlUrl
+            ?? self.payload.release?.htmlUrl
+            ?? self.payload.forkee?.htmlUrl
+            ?? commitURL
             ?? fallbackURL
         let trimmed = preview.trimmingCharacters(in: .whitespacesAndNewlines)
         return ActivityEvent(

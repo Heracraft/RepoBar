@@ -43,6 +43,7 @@
 - Repo menu stat row now includes last push age.
 - Repo submenus now list remaining repository details like CI run count and traffic stats when available.
 - Repo submenus now include the last 10 recent activity events with quick links.
+- Activity event links now deep-link to stars, releases, forks, and commits when available.
 
 ### Fixed
 - Settings now open via SwiftUI `openSettings` from the MenuBarExtra.

@@ -54,4 +54,38 @@ struct EventLabelTests {
         #expect(activity.actor == "octo")
         #expect(activity.url.absoluteString == "https://example.com/issue/1")
     }
+
+    @Test
+    func activityEventUsesStargazerLinkForWatchEvents() {
+        let event = RepoEvent(
+            type: "WatchEvent",
+            actor: EventActor(login: "octo"),
+            payload: EventPayload(action: nil, comment: nil, issue: nil, pullRequest: nil),
+            createdAt: Date()
+        )
+        let activity = event.activityEvent(owner: "steipete", name: "RepoBar")
+        #expect(activity.url.absoluteString == "https://github.com/steipete/RepoBar/stargazers")
+    }
+
+    @Test
+    func activityEventUsesCommitLinkForPushEvents() {
+        let event = RepoEvent(
+            type: "PushEvent",
+            actor: EventActor(login: "octo"),
+            payload: EventPayload(
+                action: nil,
+                comment: nil,
+                issue: nil,
+                pullRequest: nil,
+                release: nil,
+                forkee: nil,
+                ref: nil,
+                head: "abc123",
+                commits: nil
+            ),
+            createdAt: Date()
+        )
+        let activity = event.activityEvent(owner: "steipete", name: "RepoBar")
+        #expect(activity.url.absoluteString == "https://github.com/steipete/RepoBar/commit/abc123")
+    }
 }
