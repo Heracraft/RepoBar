@@ -80,7 +80,8 @@ final class MenuItemHostingView: NSHostingView<AnyView>, MenuItemMeasuring, Menu
         super.init(rootView: rootView)
     }
 
-    init(rootView: AnyView) {
+    @MainActor
+    required init(rootView: AnyView) {
         self.highlightState = nil
         super.init(rootView: rootView)
     }
