@@ -48,7 +48,7 @@ struct RepoCardView: View {
         parts.append("Issues \(self.repo.issues)")
         parts.append("Pull requests \(self.repo.pulls)")
         if let release = self.repo.latestReleaseDate {
-            parts.append("Latest release \(release)")
+            parts.append("Release \(release)")
         }
         if let activity = self.repo.activityLine {
             parts.append("Activity \(activity)")
@@ -64,7 +64,8 @@ struct RepoCardView: View {
                     .font(.headline)
                     .lineLimit(1)
                 if let release = repo.latestRelease {
-                    Text("Latest • \(release) • \(self.repo.latestReleaseDate ?? "")")
+                    let date = self.repo.latestReleaseDate ?? ""
+                    Text(date.isEmpty ? release : "\(release) • \(date)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
