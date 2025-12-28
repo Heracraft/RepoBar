@@ -158,7 +158,7 @@ struct MenuCIBadge: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Circle()
                 .fill(self.color)
                 .frame(width: 6, height: 6)
@@ -321,7 +321,7 @@ struct MenuRepoFiltersView: View {
             .controlSize(.mini)
             .fixedSize()
 
-            Spacer(minLength: 1)
+            Spacer(minLength: 0)
 
             Image(systemName: "arrow.up.arrow.down")
                 .font(.caption2)
