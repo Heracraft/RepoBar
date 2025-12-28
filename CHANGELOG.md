@@ -31,9 +31,10 @@
 - Menu filter toggles now refresh the menu immediately.
 - Menu bar now uses SwiftUI MenuBarExtra and opens Preferences directly from the menu.
 - Empty repo state now explains active filters and keeps filter controls visible.
+- SwiftUI and app models now use `@Observable`/`@Bindable` for state updates.
 
 ### Fixed
-- mac app no longer crashes on launch due to the hidden keepalive window; Settings opens via AppKit action.
+- Settings now open via SwiftUI `openSettings` from the MenuBarExtra.
 - `pnpm start` now packages and launches a proper `.app` bundle (stable bundle identifier for menubar behavior).
 - Contribution heatmap date parsing handles both date-only and ISO8601 timestamps.
 - Sparkle updater initialization now defers controller setup until after `super.init`.

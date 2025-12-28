@@ -3,11 +3,11 @@ import RepoBarCore
 import SwiftUI
 
 struct RepoBarMenuContent: View {
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
     @Environment(\.openSettings) private var openSettings
     @State private var hoveredRepo: String?
-    @ObservedObject private var updateStatus = SparkleController.shared.updateStatus
+    @Bindable private var updateStatus = SparkleController.shared.updateStatus
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -16,9 +16,12 @@ struct RepoBarMenuContent: View {
                let username = self.currentUsername,
                let displayName = self.currentDisplayName
             {
-                ContributionHeaderView(username: username, displayName: displayName)
-                    .environmentObject(self.session)
-                    .environmentObject(self.appState)
+                ContributionHeaderView(
+                    username: username,
+                    displayName: displayName,
+                    session: self.session,
+                    appState: self.appState
+                )
                     .padding(.horizontal, 10)
                     .padding(.top, 6)
                     .padding(.bottom, 4)
@@ -57,8 +60,7 @@ struct RepoBarMenuContent: View {
                 }
 
                 if self.session.hasLoadedRepositories {
-                    MenuRepoFiltersView()
-                        .environmentObject(self.session)
+                    MenuRepoFiltersView(session: self.session)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                     Divider()

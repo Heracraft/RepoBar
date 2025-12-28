@@ -2,8 +2,8 @@ import RepoBarCore
 import SwiftUI
 
 struct RepoSettingsView: View {
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
     @State private var newRepoInput = ""
     @State private var newRepoVisibility: RepoVisibility = .pinned
     @State private var selection = Set<String>()
@@ -18,7 +18,9 @@ struct RepoSettingsView: View {
                 placeholder: "owner/name",
                 buttonTitle: "Add",
                 text: self.$newRepoInput,
-                onCommit: self.addNewRepo
+                onCommit: self.addNewRepo,
+                session: self.session,
+                appState: self.appState
             ) {
                 Picker("Visibility", selection: self.$newRepoVisibility) {
                     ForEach([RepoVisibility.pinned, .hidden], id: \.id) { vis in
@@ -133,10 +135,9 @@ private struct RepoInputRow<Accessory: View>: View {
     let buttonTitle: String
     @Binding var text: String
     var onCommit: (String) -> Void
+    @Bindable var session: Session
+    let appState: AppState
     var accessory: () -> Accessory
-
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var session: Session
     @State private var suggestions: [Repository] = []
     @State private var isLoading = false
     @State private var showSuggestions = false

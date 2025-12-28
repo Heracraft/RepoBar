@@ -8,7 +8,7 @@ struct RepoCardView: View {
     let hide: () -> Void
     let moveUp: (() -> Void)?
     let moveDown: (() -> Void)?
-    @EnvironmentObject var session: Session
+    @Bindable var session: Session
 
     var body: some View {
         VStack(alignment: .leading, spacing: self.verticalSpacing) {

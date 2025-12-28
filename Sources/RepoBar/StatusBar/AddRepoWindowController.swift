@@ -36,11 +36,9 @@ private struct AddRepoPanelView: View {
     @State private var isPresented = true
 
     var body: some View {
-        AddRepoView(isPresented: self.$isPresented) { repo in
+        AddRepoView(isPresented: self.$isPresented, session: self.appState.session, appState: self.appState) { repo in
             Task { await self.appState.addPinned(repo.fullName) }
         }
-        .environmentObject(self.appState)
-        .environmentObject(self.appState.session)
         .onChange(of: self.isPresented) { _, newValue in
             if !newValue {
                 self.onClose()

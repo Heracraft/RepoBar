@@ -1,5 +1,6 @@
 import AppKit
 import MenuBarExtraAccess
+import Observation
 import RepoBarCore
 import SwiftUI
 
@@ -7,18 +8,15 @@ import SwiftUI
 struct RepoBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate
-    @StateObject private var appState = AppState()
+    @State private var appState = AppState()
     @State private var isMenuPresented = false
 
     @SceneBuilder
     var body: some Scene {
         MenuBarExtra {
-            RepoBarMenuContent()
-                .environmentObject(self.appState.session)
-                .environmentObject(self.appState)
+            RepoBarMenuContent(session: self.appState.session, appState: self.appState)
         } label: {
-            StatusItemLabelView()
-                .environmentObject(self.appState.session)
+            StatusItemLabelView(session: self.appState.session)
         }
         .menuBarExtraStyle(.menu)
         .menuBarExtraAccess(isPresented: self.$isMenuPresented) { _ in }
@@ -29,9 +27,7 @@ struct RepoBarApp: App {
         }
 
         Settings {
-            SettingsView()
-                .environmentObject(self.appState.session)
-                .environmentObject(self.appState)
+            SettingsView(session: self.appState.session, appState: self.appState)
         }
         .defaultSize(width: 540, height: 420)
         .windowResizability(.contentSize)
@@ -69,8 +65,9 @@ extension AppDelegate {
 // MARK: - AppState container
 
 @MainActor
-final class AppState: ObservableObject {
-    @Published var session = Session()
+@Observable
+final class AppState {
+    var session = Session()
     let auth = OAuthCoordinator()
     let github = GitHubClient()
     let refreshScheduler = RefreshScheduler()
@@ -346,18 +343,19 @@ final class AppState: ObservableObject {
     }
 }
 
-final class Session: ObservableObject {
-    @Published var account: AccountState = .loggedOut
-    @Published var repositories: [Repository] = []
-    @Published var hasLoadedRepositories = false
-    @Published var settings = UserSettings()
-    @Published var rateLimitReset: Date?
-    @Published var lastError: String?
-    @Published var contributionHeatmap: [HeatmapCell] = []
-    @Published var contributionUser: String?
-    @Published var contributionError: String?
-    @Published var menuRepoScope: MenuRepoScope = .all
-    @Published var menuRepoFilter: MenuRepoFilter = .all
+@Observable
+final class Session {
+    var account: AccountState = .loggedOut
+    var repositories: [Repository] = []
+    var hasLoadedRepositories = false
+    var settings = UserSettings()
+    var rateLimitReset: Date?
+    var lastError: String?
+    var contributionHeatmap: [HeatmapCell] = []
+    var contributionUser: String?
+    var contributionError: String?
+    var menuRepoScope: MenuRepoScope = .all
+    var menuRepoFilter: MenuRepoFilter = .all
 }
 
 enum AccountState: Equatable {

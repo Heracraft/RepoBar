@@ -4,8 +4,8 @@ import SwiftUI
 struct ContributionHeaderView: View {
     let username: String
     let displayName: String
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
     @State private var isLoading = true
     @State private var failed = false
 

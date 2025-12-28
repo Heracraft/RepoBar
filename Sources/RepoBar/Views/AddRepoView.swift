@@ -3,13 +3,12 @@ import SwiftUI
 
 struct AddRepoView: View {
     @Binding var isPresented: Bool
+    @Bindable var session: Session
+    let appState: AppState
     var onSelect: (Repository) -> Void
     @State private var query = ""
     @State private var results: [Repository] = []
     @State private var isLoading = false
-
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var session: Session
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

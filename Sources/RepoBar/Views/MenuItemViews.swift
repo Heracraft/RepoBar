@@ -290,7 +290,7 @@ enum MenuHighlightStyle {
 }
 
 struct MenuRepoFiltersView: View {
-    @EnvironmentObject var session: Session
+    @Bindable var session: Session
 
     var body: some View {
         HStack(spacing: 8) {

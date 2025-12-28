@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct StatusItemLabelView: View {
-    @EnvironmentObject var session: Session
+    @Bindable var session: Session
 
     var body: some View {
         let status = self.aggregateStatus()

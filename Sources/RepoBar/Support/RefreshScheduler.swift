@@ -1,8 +1,10 @@
 import Foundation
+import Observation
 import RepoBarCore
 
 @MainActor
-final class RefreshScheduler: ObservableObject {
+@Observable
+final class RefreshScheduler {
     private var timer: Timer?
     private var interval: TimeInterval = RefreshInterval.fiveMinutes.seconds
     private var tickHandler: (() -> Void)?

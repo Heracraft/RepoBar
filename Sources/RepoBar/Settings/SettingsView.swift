@@ -3,24 +3,24 @@ import RepoBarCore
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
     @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
         TabView(selection: self.$selectedTab) {
-            GeneralSettingsView()
+            GeneralSettingsView(session: self.session, appState: self.appState)
                 .tabItem { Label("General", systemImage: "gear") }
                 .tag(SettingsTab.general)
-            RepoSettingsView()
+            RepoSettingsView(session: self.session, appState: self.appState)
                 .tabItem { Label("Repositories", systemImage: "tray.full") }
                 .tag(SettingsTab.repositories)
-            AccountSettingsView()
+            AccountSettingsView(session: self.session, appState: self.appState)
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
                 .tag(SettingsTab.accounts)
             #if DEBUG
                 if self.session.settings.debugPaneEnabled {
-                    DebugSettingsView()
+                    DebugSettingsView(session: self.session, appState: self.appState)
                         .tabItem { Label("Debug", systemImage: "ant.fill") }
                         .tag(SettingsTab.debug)
                 }
@@ -207,8 +207,8 @@ enum SettingsTab: Hashable {
 }
 
 struct GeneralSettingsView: View {
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -290,8 +290,8 @@ struct GeneralSettingsView: View {
 }
 
 struct AppearanceSettingsView: View {
-    @EnvironmentObject var session: Session
-    @EnvironmentObject var appState: AppState
+    @Bindable var session: Session
+    let appState: AppState
 
     var body: some View {
         Form {
@@ -319,8 +319,8 @@ struct AppearanceSettingsView: View {
 }
 
 struct AccountSettingsView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var session: Session
+    @Bindable var session: Session
+    let appState: AppState
     @State private var clientID = "Iv23liGm2arUyotWSjwJ"
     @State private var clientSecret = ""
     @State private var enterpriseHost = ""
@@ -424,8 +424,8 @@ struct AccountSettingsView: View {
 }
 
 struct DebugSettingsView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var session: Session
+    @Bindable var session: Session
+    let appState: AppState
     @State private var diagnostics = DiagnosticsSummary.empty
 
     var body: some View {
