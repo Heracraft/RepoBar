@@ -443,7 +443,31 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 title: title,
                 action: #selector(self.openActivityEvent),
                 represented: event.url,
-                systemImage: "clock")
+                systemImage: self.activitySymbolName(for: event))
+        }
+    }
+
+    private func activitySymbolName(for event: ActivityEvent) -> String {
+        guard let type = event.eventType else { return "clock" }
+        switch type {
+        case "PullRequestEvent": "arrow.triangle.branch"
+        case "PullRequestReviewEvent": "checkmark.bubble"
+        case "PullRequestReviewCommentEvent": "text.bubble"
+        case "PullRequestReviewThreadEvent": "text.bubble"
+        case "IssueCommentEvent": "text.bubble"
+        case "IssuesEvent": "exclamationmark.circle"
+        case "PushEvent": "arrow.up.circle"
+        case "ReleaseEvent": "tag"
+        case "WatchEvent": "star"
+        case "ForkEvent": "doc.on.doc"
+        case "CreateEvent": "plus"
+        case "DeleteEvent": "trash"
+        case "MemberEvent": "person.badge.plus"
+        case "GollumEvent": "book"
+        case "CommitCommentEvent": "text.bubble"
+        case "DiscussionEvent": "bubble.left.and.bubble.right"
+        case "SponsorshipEvent": "heart"
+        default: "clock"
         }
     }
 

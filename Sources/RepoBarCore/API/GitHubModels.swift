@@ -229,7 +229,8 @@ extension RepoEvent {
             title: trimmed.isEmpty ? self.displayTitle : trimmed,
             actor: self.actor.login,
             date: self.createdAt,
-            url: url
+            url: url,
+            eventType: self.type
         )
     }
 

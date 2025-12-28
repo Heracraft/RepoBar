@@ -130,12 +130,14 @@ public struct ActivityEvent: Codable, Equatable, Sendable {
     public let actor: String
     public let date: Date
     public let url: URL
+    public let eventType: String?
 
-    public init(title: String, actor: String, date: Date, url: URL) {
+    public init(title: String, actor: String, date: Date, url: URL, eventType: String? = nil) {
         self.title = title
         self.actor = actor
         self.date = date
         self.url = url
+        self.eventType = eventType
     }
 }
 
