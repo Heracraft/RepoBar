@@ -279,6 +279,7 @@ struct GeneralSettingsView: View {
                     Spacer()
                     Button("Quit RepoBar") { NSApp.terminate(nil) }
                 }
+                .listRowBackground(Color.clear)
             }
         }
         .formStyle(.grouped)
