@@ -39,6 +39,7 @@
 - Accounts settings pane now uses grouped styling, labeled fields, and a compact signed-in status block.
 - Settings window height increased; Quit button now uses standard styling.
 - Repo menu headers now combine CI dot, repository name, and release/time on a single row.
+- Repo menu stat row now includes stars and forks for quick popularity context.
 
 ### Fixed
 - Settings now open via SwiftUI `openSettings` from the MenuBarExtra.

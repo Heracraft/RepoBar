@@ -14,6 +14,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
     public var openIssues: Int
     public var openPulls: Int
     public var stars: Int
+    public var forks: Int
     public var pushedAt: Date?
     public var latestRelease: Release?
     public var latestActivity: ActivityEvent?
@@ -34,6 +35,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
         openIssues: Int,
         openPulls: Int,
         stars: Int = 0,
+        forks: Int = 0,
         pushedAt: Date? = nil,
         latestRelease: Release?,
         latestActivity: ActivityEvent?,
@@ -53,6 +55,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
         self.openIssues = openIssues
         self.openPulls = openPulls
         self.stars = stars
+        self.forks = forks
         self.pushedAt = pushedAt
         self.latestRelease = latestRelease
         self.latestActivity = latestActivity
@@ -77,6 +80,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
             openIssues: self.openIssues,
             openPulls: self.openPulls,
             stars: self.stars,
+            forks: self.forks,
             pushedAt: self.pushedAt,
             latestRelease: self.latestRelease,
             latestActivity: self.latestActivity,

@@ -13,6 +13,8 @@ struct RepositoryViewModel: Identifiable, Equatable {
     let pulls: Int
     let trafficVisitors: Int?
     let trafficCloners: Int?
+    let stars: Int
+    let forks: Int
     let activityLine: String?
     let activityURL: URL?
     let heatmap: [HeatmapCell]
@@ -30,6 +32,8 @@ struct RepositoryViewModel: Identifiable, Equatable {
         self.pulls = repo.openPulls
         self.trafficVisitors = repo.traffic?.uniqueVisitors
         self.trafficCloners = repo.traffic?.uniqueCloners
+        self.stars = repo.stars
+        self.forks = repo.forks
         self.heatmap = repo.heatmap
         self.sortOrder = repo.sortOrder
         self.error = repo.error

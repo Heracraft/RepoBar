@@ -80,6 +80,8 @@ struct RepoMenuCardView: View {
         HStack(spacing: 12) {
             MenuStatBadge(label: "Issues", value: self.repo.issues)
             MenuStatBadge(label: "PRs", value: self.repo.pulls)
+            MenuStatBadge(label: "Stars", value: self.repo.stars)
+            MenuStatBadge(label: "Forks", value: self.repo.forks)
         }
     }
 

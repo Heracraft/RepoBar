@@ -12,6 +12,7 @@ struct RepoItem: Decodable {
     let archived: Bool
     let openIssuesCount: Int
     let stargazersCount: Int
+    let forksCount: Int
     let pushedAt: Date?
     let owner: Owner
 
@@ -24,6 +25,7 @@ struct RepoItem: Decodable {
         case archived
         case openIssuesCount = "open_issues_count"
         case stargazersCount = "stargazers_count"
+        case forksCount = "forks_count"
         case pushedAt = "pushed_at"
         case owner
     }
