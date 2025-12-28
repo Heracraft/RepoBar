@@ -2,28 +2,11 @@ import AppKit
 import RepoBarCore
 import SwiftUI
 
-#if !SWIFT_PACKAGE
-    extension NSStatusBarButton {
-        override open func mouseDown(with event: NSEvent) {
-            super.mouseDown(with: event)
-            highlight(true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [weak self] in
-                guard let self else { return }
-                highlight(AppDelegateState.shared?.statusBarController?.menuManager.isMenuVisible ?? false)
-            }
-        }
-    }
-#endif
-
 @MainActor
 final class StatusBarMenuManager: NSObject, NSMenuDelegate {
-    private enum MenuState { case none, mainMenu }
-
     private static let menuMinWidth: CGFloat = 420
     private static let menuMaxWidth: CGFloat = 560
 
-    private weak var statusBarButton: NSStatusBarButton?
-    private var menuState: MenuState = .none
     private let appState: AppState
     private var mainMenu: NSMenu?
     private var addRepoWindowController: AddRepoWindowController?
@@ -32,31 +15,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.appState = appState
     }
 
-    // MARK: - Left click
-
-    var isMenuVisible: Bool {
-        self.menuState != .none
-    }
-
-    func toggleMainMenu(relativeTo button: NSStatusBarButton, statusItem: NSStatusItem) {
-        if self.menuState == .mainMenu {
-            self.mainMenu?.cancelTracking()
-            return
-        }
-        self.showMainMenu(relativeTo: button, statusItem: statusItem)
-    }
-
-    func showMainMenu(relativeTo button: NSStatusBarButton, statusItem: NSStatusItem) {
-        self.updateMenuState(.mainMenu, button: button)
-        button.state = .on
-
+    func attachMainMenu(to statusItem: NSStatusItem) {
         let menu = self.mainMenu ?? self.makeMainMenu()
         self.mainMenu = menu
-        self.populateMainMenu(menu)
-        self.refreshMenuViewHeights(in: menu)
-
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
-        self.statusBarButton?.highlight(true)
+        statusItem.menu = menu
     }
 
     // MARK: - Menu actions
@@ -181,14 +143,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         Task { await self.appState.refresh() }
     }
 
-    // MARK: - State
-
-    private func updateMenuState(_ newState: MenuState, button: NSStatusBarButton? = nil) {
-        self.menuState = newState
-        if let button { self.statusBarButton = button }
-        if newState == .none { self.statusBarButton?.state = .off }
-    }
-
     func menuWillOpen(_ menu: NSMenu) {
         if menu === self.mainMenu {
             self.populateMainMenu(menu)
@@ -200,9 +154,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         if menu === self.mainMenu {
             self.clearHighlights(in: menu)
         }
-        self.updateMenuState(.none)
-        self.statusBarButton?.state = .off
-        self.statusBarButton?.highlight(false)
     }
 
     func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
@@ -219,6 +170,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.delegate = self
+        menu.appearance = nil
         return menu
     }
 
@@ -337,7 +289,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         menu.addItem(self.actionItem(title: "Refresh now", action: #selector(self.refreshNow), keyEquivalent: "r"))
         menu.addItem(self.actionItem(title: "Preferences…", action: #selector(self.openPreferences), keyEquivalent: ","))
         menu.addItem(self.actionItem(title: "Check for Updates…", action: #selector(self.checkForUpdates)))
-        menu.addItem(self.actionItem(title: "Log out", action: #selector(self.logOut)))
         menu.addItem(.separator())
         menu.addItem(self.actionItem(title: "Quit RepoBar", action: #selector(self.quitApp), keyEquivalent: "q"))
     }
@@ -510,12 +461,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     private func open(url: URL) {
         NSWorkspace.shared.open(url)
     }
-}
-
-// Helper to access delegate in the NSStatusBarButton extension
-final class AppDelegateState {
-    @MainActor static let shared = AppDelegateState()
-    weak var statusBarController: StatusBarController?
 }
 
 @MainActor

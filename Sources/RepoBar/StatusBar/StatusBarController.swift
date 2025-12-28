@@ -14,7 +14,6 @@ final class StatusBarController: NSObject {
         self.menuManager = StatusBarMenuManager(appState: appState)
         self.iconController = StatusBarIconController()
         super.init()
-        AppDelegateState.shared.statusBarController = self
         self.setupStatusItem()
         self.startTimer()
     }
@@ -23,12 +22,11 @@ final class StatusBarController: NSObject {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
         button.imagePosition = .imageLeading
-        button.action = #selector(self.handleClick(_:))
-        button.target = self
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.setButtonType(.toggle)
         button.toolTip = "RepoBar"
         self.iconController.update(button: button, session: self.appState.session)
+        if let statusItem {
+            self.menuManager.attachMainMenu(to: statusItem)
+        }
     }
 
     private func startTimer() {
@@ -41,8 +39,4 @@ final class StatusBarController: NSObject {
         self.updateTimer?.fire()
     }
 
-    @objc private func handleClick(_ sender: NSStatusBarButton) {
-        _ = NSApp.currentEvent
-        if let statusItem { self.menuManager.toggleMainMenu(relativeTo: sender, statusItem: statusItem) }
-    }
 }

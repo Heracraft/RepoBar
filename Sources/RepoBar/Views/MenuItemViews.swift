@@ -270,11 +270,11 @@ enum MenuHighlightStyle {
     }
 
     static func selectionBackground(_ highlighted: Bool) -> Color {
-        highlighted ? Color(nsColor: .selectedMenuItemColor) : .clear
+        highlighted ? Color(nsColor: .selectedContentBackgroundColor) : .clear
     }
 
     static func badgeBackground(_ highlighted: Bool) -> Color {
-        if highlighted { return Color(nsColor: .selectedMenuItemColor).opacity(0.25) }
+        if highlighted { return Color(nsColor: .selectedContentBackgroundColor).opacity(0.25) }
         return Color(nsColor: .windowBackgroundColor)
     }
 
