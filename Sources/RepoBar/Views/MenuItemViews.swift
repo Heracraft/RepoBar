@@ -20,6 +20,7 @@ struct RepoMenuCardView: View {
     let showHeatmap: Bool
     let heatmapSpan: HeatmapSpan
     let accentTone: AccentTone
+    let onOpen: (() -> Void)?
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
@@ -40,6 +41,10 @@ struct RepoMenuCardView: View {
                     .frame(height: 1)
                     .padding(.leading, 10)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            self.onOpen?()
         }
     }
 

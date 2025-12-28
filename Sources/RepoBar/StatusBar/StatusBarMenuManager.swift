@@ -77,6 +77,11 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.open(url: url)
     }
 
+    private func openRepoFromMenu(fullName: String) {
+        guard let url = self.repoURL(for: fullName) else { return }
+        self.open(url: url)
+    }
+
     @objc private func openIssues(_ sender: NSMenuItem) {
         self.openRepoPath(sender: sender, path: "issues")
     }
@@ -283,7 +288,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     showsSeparator: index < repos.count - 1,
                     showHeatmap: settings.showHeatmap,
                     heatmapSpan: settings.heatmapSpan,
-                    accentTone: settings.accentTone
+                    accentTone: settings.accentTone,
+                    onOpen: { [weak self] in
+                        self?.openRepoFromMenu(fullName: repo.title)
+                    }
                 )
                 let submenu = self.makeRepoSubmenu(for: repo, isPinned: isPinned)
                 let item = self.viewItem(for: card, enabled: true, highlightable: true, submenu: submenu)
