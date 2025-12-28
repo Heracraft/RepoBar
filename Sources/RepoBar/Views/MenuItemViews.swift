@@ -333,6 +333,7 @@ struct MenuRepoFiltersView: View {
                 }
             }
             .labelsHidden()
+            .font(.caption2)
             .pickerStyle(.segmented)
             .controlSize(.mini)
             .fixedSize()
@@ -349,6 +350,7 @@ struct MenuRepoFiltersView: View {
                 }
             }
             .labelsHidden()
+            .font(.caption2)
             .pickerStyle(.segmented)
             .controlSize(.mini)
             .fixedSize()
