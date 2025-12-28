@@ -211,71 +211,131 @@ struct GeneralSettingsView: View {
     let appState: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Toggle("Show contribution header", isOn: self.$session.settings.showContributionHeader)
-                .onChange(of: self.session.settings.showContributionHeader) { _, _ in self.appState.persistSettings() }
-
-            Toggle("Show heatmap", isOn: self.$session.settings.showHeatmap)
-                .onChange(of: self.session.settings.showHeatmap) { _, _ in self.appState.persistSettings() }
-
-            Picker("Heatmap window", selection: self.$session.settings.heatmapSpan) {
-                ForEach(HeatmapSpan.allCases, id: \.self) { span in
-                    Text(span.label).tag(span)
-                }
-            }
-            .onChange(of: self.session.settings.heatmapSpan) { _, _ in self.appState.persistSettings() }
-
-            Picker("Repositories shown", selection: self.$session.settings.repoDisplayLimit) {
-                ForEach([3, 5, 8, 12], id: \.self) { Text("\($0)").tag($0) }
-            }
-            .onChange(of: self.session.settings.repoDisplayLimit) { _, _ in self.appState.persistSettings() }
-
-            Toggle("Include forked repositories", isOn: self.$session.settings.showForks)
-                .onChange(of: self.session.settings.showForks) { _, _ in
-                    self.appState.persistSettings()
-                    Task { await self.appState.refresh() }
-                }
-                .help("Hidden by default. Enable to show forks in repo lists and search.")
-
-            Toggle("Include archived repositories", isOn: self.$session.settings.showArchived)
-                .onChange(of: self.session.settings.showArchived) { _, _ in
-                    self.appState.persistSettings()
-                    Task { await self.appState.refresh() }
-                }
-                .help("Hidden by default. Enable to show archived repos in repo lists and search.")
-
-            Picker("Refresh interval", selection: self.$session.settings.refreshInterval) {
-                ForEach(RefreshInterval.allCases, id: \.self) { interval in
-                    Text(self.intervalLabel(interval)).tag(interval)
-                }
-            }
-            .onChange(of: self.session.settings.refreshInterval) { _, newValue in
-                LaunchAtLoginHelper.set(enabled: self.session.settings.launchAtLogin)
-                self.appState.persistSettings()
-                Task { @MainActor in
-                    self.appState.refreshScheduler.configure(interval: newValue.seconds) { [weak appState] in
-                        Task { await appState?.refresh() }
-                    }
-                }
-            }
-
-            #if DEBUG
-                Toggle("Enable debug tools", isOn: self.$session.settings.debugPaneEnabled)
-                    .onChange(of: self.session.settings.debugPaneEnabled) { _, _ in
-                        self.appState.persistSettings()
-                    }
-                    .help("Show the Debug tab for diagnostics and developer-only controls.")
-            #endif
-
-            Toggle("Launch at login", isOn: self.$session.settings.launchAtLogin)
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 16) {
+                SettingsSectionHeader(title: "System")
+                PreferenceToggleRow(
+                    title: "Launch at login",
+                    subtitle: "Automatically opens RepoBar when you start your Mac.",
+                    binding: self.$session.settings.launchAtLogin
+                )
                 .onChange(of: self.session.settings.launchAtLogin) { _, value in
                     LaunchAtLoginHelper.set(enabled: value)
                     self.appState.persistSettings()
                 }
+
+                Divider()
+
+                SettingsSectionHeader(title: "Display")
+                PreferenceToggleRow(
+                    title: "Show contribution header",
+                    subtitle: "Displays the GitHub contributions header above your repo list.",
+                    binding: self.$session.settings.showContributionHeader
+                )
+                .onChange(of: self.session.settings.showContributionHeader) { _, _ in
+                    self.appState.persistSettings()
+                }
+
+                PreferenceToggleRow(
+                    title: "Show heatmap",
+                    subtitle: "Shows commit activity under each repo card.",
+                    binding: self.$session.settings.showHeatmap
+                )
+                .onChange(of: self.session.settings.showHeatmap) { _, _ in
+                    self.appState.persistSettings()
+                }
+
+                SettingsPickerRow(
+                    title: "Heatmap window",
+                    subtitle: "How far back the heatmap goes.",
+                    selection: self.$session.settings.heatmapSpan,
+                    options: HeatmapSpan.allCases,
+                    label: { span in span.label }
+                )
+                .onChange(of: self.session.settings.heatmapSpan) { _, _ in
+                    self.appState.persistSettings()
+                }
+
+                Divider()
+
+                SettingsSectionHeader(title: "Repositories")
+                SettingsPickerRow(
+                    title: "Repositories shown",
+                    subtitle: "Controls how many repos appear in the menu.",
+                    selection: self.$session.settings.repoDisplayLimit,
+                    options: [3, 5, 8, 12],
+                    label: { "\($0)" }
+                )
+                .onChange(of: self.session.settings.repoDisplayLimit) { _, _ in
+                    self.appState.persistSettings()
+                }
+
+                PreferenceToggleRow(
+                    title: "Include forked repositories",
+                    subtitle: "Hidden by default. Enable to show forks in lists and search.",
+                    binding: self.$session.settings.showForks
+                )
+                .onChange(of: self.session.settings.showForks) { _, _ in
+                    self.appState.persistSettings()
+                    Task { await self.appState.refresh() }
+                }
+
+                PreferenceToggleRow(
+                    title: "Include archived repositories",
+                    subtitle: "Hidden by default. Enable to show archived repos.",
+                    binding: self.$session.settings.showArchived
+                )
+                .onChange(of: self.session.settings.showArchived) { _, _ in
+                    self.appState.persistSettings()
+                    Task { await self.appState.refresh() }
+                }
+
+                Divider()
+
+                SettingsSectionHeader(title: "Refresh")
+                SettingsPickerRow(
+                    title: "Refresh interval",
+                    subtitle: "How often RepoBar checks for updates.",
+                    selection: self.$session.settings.refreshInterval,
+                    options: RefreshInterval.allCases,
+                    label: { self.intervalLabel($0) }
+                )
+                .onChange(of: self.session.settings.refreshInterval) { _, newValue in
+                    LaunchAtLoginHelper.set(enabled: self.session.settings.launchAtLogin)
+                    self.appState.persistSettings()
+                    Task { @MainActor in
+                        self.appState.refreshScheduler.configure(interval: newValue.seconds) { [weak appState] in
+                            Task { await appState?.refresh() }
+                        }
+                    }
+                }
+
+                #if DEBUG
+                    Divider()
+                    SettingsSectionHeader(title: "Debug")
+                    PreferenceToggleRow(
+                        title: "Enable debug tools",
+                        subtitle: "Show the Debug tab for diagnostics and developer-only controls.",
+                        binding: self.$session.settings.debugPaneEnabled
+                    )
+                    .onChange(of: self.session.settings.debugPaneEnabled) { _, _ in
+                        self.appState.persistSettings()
+                    }
+                #endif
+
+                Divider()
+
+                HStack {
+                    Spacer()
+                    Button("Quit RepoBar") { NSApp.terminate(nil) }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                }
+            }
+            .frame(maxWidth: 420, alignment: .leading)
+            .padding(.horizontal, 48)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: 420, alignment: .leading)
-        .padding(.horizontal, 48)
-        .padding(.vertical, 36)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
@@ -285,6 +345,65 @@ struct GeneralSettingsView: View {
         case .twoMinutes: "2 minutes"
         case .fiveMinutes: "5 minutes"
         case .fifteenMinutes: "15 minutes"
+        }
+    }
+}
+
+private struct SettingsSectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(self.title)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+    }
+}
+
+private struct PreferenceToggleRow: View {
+    let title: String
+    let subtitle: String
+    @Binding var binding: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Toggle(isOn: self.$binding) {
+                Text(self.title)
+                    .font(.body)
+            }
+            .toggleStyle(.checkbox)
+            Text(self.subtitle)
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct SettingsPickerRow<Option: Hashable>: View {
+    let title: String
+    let subtitle: String
+    @Binding var selection: Option
+    let options: [Option]
+    let label: (Option) -> String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(self.title)
+                    .font(.body)
+                Spacer()
+                Picker("", selection: self.$selection) {
+                    ForEach(self.options, id: \.self) { option in
+                        Text(self.label(option)).tag(option)
+                    }
+                }
+                .labelsHidden()
+            }
+            Text(self.subtitle)
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
