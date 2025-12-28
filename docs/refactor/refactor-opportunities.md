@@ -1,3 +1,9 @@
+---
+summary: "RepoBar refactor opportunities checklist."
+read_when:
+  - Reviewing structural refactors or long-term cleanup ideas
+---
+
 # Refactor Opportunities
 
 Last updated: 2025-12-28
@@ -11,7 +17,7 @@ Last updated: 2025-12-28
 
 ## High-Impact Opportunities
 
-### 1) Unify data pipeline (menu + CLI)
+### [ ] 1) Unify data pipeline (menu + CLI)
 - Create a shared pipeline: fetch -> filter -> sort -> hydrate -> limit.
 - Single `RepositoryQuery` or `RepositoryPipeline` with config flags:
   - scope (all/pinned/hidden)
@@ -23,7 +29,7 @@ Last updated: 2025-12-28
 - Use same filter logic for menu and CLI to avoid mismatches.
 - Add unit tests for pipeline with fixtures.
 
-### 2) Split AppState refresh into stages
+### [ ] 2) Split AppState refresh into stages
 - `fetchActivityRepos()`
 - `applyVisibilityFilters()`
 - `applyPinnedOrder()`
@@ -33,7 +39,7 @@ Last updated: 2025-12-28
 - `applyLimits()`
 - `updateSession()`
 
-### 3) Menu building refactor
+### [ ] 3) Menu building refactor
 - Split `StatusBarMenuManager` into:
   - `MenuBuilder` (pure structure)
   - `MenuViewHost` (NSMenu + NSHostingView)
@@ -41,34 +47,34 @@ Last updated: 2025-12-28
 - Introduce `MenuSection` definitions (header, filters, repo list, footer).
 - Centralize submenu structure and ordering rules.
 
-### 4) Repository view models
+### [ ] 4) Repository view models
 - Introduce `RepositoryDisplayModel` with precomputed strings, ages, labels.
 - Keep logic out of SwiftUI views.
 - Compute `activityLine`, `statsLine`, `releaseLine` once.
 
 ## Cache + Networking
 
-### 5) Repo detail cache API
+### [ ] 5) Repo detail cache API
 - Wrap cache reads/writes behind `RepoDetailStore` interface.
 - Define cache freshness with explicit TTLs and stale flags.
 - Expose cache state to UI (stale vs fresh).
 
-### 6) Request coordination
+### [ ] 6) Request coordination
 - Add fetch coalescing to prevent duplicate requests per repo.
 - Cancel previous refresh tasks on new menu open.
 - Rate-limit hydration fan-out (TaskGroup with max concurrency).
 
-### 7) Heatmap alignment consistency
+### [ ] 7) Heatmap alignment consistency
 - Move heatmap filtering and range alignment into a shared helper.
 - Store `HeatmapRange` in settings so header + repo heatmaps align.
 
 ## Settings + Config
 
-### 8) Settings migration
+### [ ] 8) Settings migration
 - Add versioned migrations for `UserSettings`.
 - Example: `showHeatmap -> heatmapDisplay` mapping.
 
-### 9) Typed settings groups
+### [ ] 9) Typed settings groups
 - Split into structs:
   - `HeatmapSettings`
   - `RepoListSettings`
@@ -77,40 +83,40 @@ Last updated: 2025-12-28
 
 ## UI Consistency
 
-### 10) Menu style system
+### [ ] 10) Menu style system
 - `MenuStyle` for fonts, spacing, colors, insets.
 - Avoid scattered padding tweaks in view code.
 
-### 11) Heatmap rendering consistency
+### [ ] 11) Heatmap rendering consistency
 - Single `HeatmapLayout` utility for spacing + inset rules.
 - Reuse for header, repo cards, submenu heatmaps.
 
-### 12) Highlight + focus handling
+### [ ] 12) Highlight + focus handling
 - Centralize highlight styling and focus ring suppression.
 - Ensure focus behavior is consistent across NSMenu and SwiftUI items.
 
 ## Models + Types
 
-### 13) Event type enums
+### [ ] 13) Event type enums
 - Replace string checks for GitHub event types with enum.
 - Stronger mapping for icons and labels.
 - Easier to add new event types later.
 
-### 14) Activity metadata model
+### [ ] 14) Activity metadata model
 - Add `ActivityMetadata` (actor, action, target, url).
 - Derived fields for label + deep link.
 
-### 15) Repo stats value type
+### [ ] 15) Repo stats value type
 - Create `RepositoryStats` to hold issues/PRs/stars/forks/push age.
 - Used by both CLI and UI.
 
 ## CLI + Menu Parity
 
-### 16) Align filters and defaults
+### [ ] 16) Align filters and defaults
 - CLI has age cutoff; menu does not. Decide on common default.
 - `onlyWith` filter should behave identically in menu and CLI.
 
-### 17) Shared formatters
+### [ ] 17) Shared formatters
 - Shared formatting for:
   - ages and time labels
   - event labels
@@ -118,26 +124,26 @@ Last updated: 2025-12-28
 
 ## Testing
 
-### 18) Pipeline tests
+### [ ] 18) Pipeline tests
 - Filter logic (pinned vs hidden, include forks/archived).
 - Sort order (activity, issues, PRs, stars).
 - onlyWith (work/issues/prs) behavior.
 
-### 19) UI logic tests
+### [ ] 19) UI logic tests
 - Heatmap range alignment for header + repo.
 - Menu selection with pinned + filters.
 
-### 20) Fixtures + regression
+### [ ] 20) Fixtures + regression
 - Add fixtures for event mapping (PR merged, release tag, fork).
 - Use CLI fixtures for menu parity.
 
 ## Performance
 
-### 21) Preload strategy
+### [ ] 21) Preload strategy
 - Cache last menu snapshot and reuse on reopen.
 - Only refresh in background if stale.
 
-### 22) Lazy hydration
+### [ ] 22) Lazy hydration
 - Hydrate only visible rows, then opportunistically hydrate next page.
 
 ## Incremental Plan Ideas
