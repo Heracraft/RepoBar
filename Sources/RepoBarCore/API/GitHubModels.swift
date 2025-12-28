@@ -159,15 +159,37 @@ struct EventPayload: Decodable {
     let comment: EventComment?
     let issue: EventIssue?
     let pullRequest: EventPullRequest?
-    let release: EventRelease? = nil
-    let forkee: EventForkee? = nil
-    let ref: String? = nil
-    let head: String? = nil
-    let commits: [EventCommit]? = nil
+    let release: EventRelease?
+    let forkee: EventForkee?
+    let ref: String?
+    let head: String?
+    let commits: [EventCommit]?
 
     enum CodingKeys: String, CodingKey {
         case action, comment, issue, release, forkee, ref, head, commits
         case pullRequest = "pull_request"
+    }
+
+    init(
+        action: String?,
+        comment: EventComment?,
+        issue: EventIssue?,
+        pullRequest: EventPullRequest?,
+        release: EventRelease? = nil,
+        forkee: EventForkee? = nil,
+        ref: String? = nil,
+        head: String? = nil,
+        commits: [EventCommit]? = nil
+    ) {
+        self.action = action
+        self.comment = comment
+        self.issue = issue
+        self.pullRequest = pullRequest
+        self.release = release
+        self.forkee = forkee
+        self.ref = ref
+        self.head = head
+        self.commits = commits
     }
 }
 
