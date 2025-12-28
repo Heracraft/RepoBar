@@ -33,7 +33,7 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
         }
         .tabViewStyle(.automatic)
-        .frame(width: 540, height: 504)
+        .frame(width: 540, height: 605)
         .onChange(of: self.session.settings.debugPaneEnabled) { _, enabled in
             #if DEBUG
                 if !enabled, self.selectedTab == .debug {
@@ -278,8 +278,6 @@ struct GeneralSettingsView: View {
                 HStack {
                     Spacer()
                     Button("Quit RepoBar") { NSApp.terminate(nil) }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
                 }
             }
         }
