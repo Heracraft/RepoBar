@@ -16,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.1"),
         .package(url: "https://github.com/openid/AppAuth-iOS", from: "2.0.0"),
         .package(url: "https://github.com/apollographql/apollo-ios", from: "2.0.3"),
+        .package(url: "https://github.com/kean/Nuke", from: "12.0.0"),
     ],
     targets: [
         .target(
@@ -34,6 +35,8 @@ let package = Package(
                 .product(name: "MenuBarExtraAccess", package: "MenuBarExtraAccess"),
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "AppAuth", package: "AppAuth-iOS"),
+                .product(name: "Nuke", package: "Nuke"),
+                .product(name: "NukeUI", package: "Nuke"),
             ],
             exclude: ["Resources/Info.plist"],
             swiftSettings: [

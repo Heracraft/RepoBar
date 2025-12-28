@@ -1,6 +1,7 @@
+import AppKit
+import NukeUI
 import RepoBarCore
 import SwiftUI
-import AppKit
 
 private struct MenuItemHighlightedKey: EnvironmentKey {
     static let defaultValue = false
@@ -235,31 +236,32 @@ struct ActivityMenuItemView: View {
     @ViewBuilder
     private var avatar: some View {
         if let url = self.event.actorAvatarURL {
-            AsyncImage(url: url) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                Circle()
-                    .fill(Color(nsColor: .separatorColor))
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 8))
-                            .foregroundStyle(.secondary)
-                    )
+            LazyImage(url: url, transaction: Transaction(animation: nil)) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    self.avatarPlaceholder
+                }
             }
             .frame(width: 16, height: 16)
             .clipShape(Circle())
         } else {
-            Circle()
-                .fill(Color(nsColor: .separatorColor))
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.secondary)
-                )
+            self.avatarPlaceholder
                 .frame(width: 16, height: 16)
         }
+    }
+
+    private var avatarPlaceholder: some View {
+        Circle()
+            .fill(Color(nsColor: .separatorColor))
+            .overlay(
+                Image(systemName: "person.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.secondary)
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

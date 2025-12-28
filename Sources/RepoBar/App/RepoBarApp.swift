@@ -1,5 +1,6 @@
 import AppKit
 import MenuBarExtraAccess
+import Nuke
 import Observation
 import RepoBarCore
 import SwiftUI
@@ -44,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        configureImagePipeline()
         NSApp.setActivationPolicy(.accessory)
     }
 
@@ -60,6 +62,17 @@ extension AppDelegate {
             $0.bundleIdentifier == bundleID && !$0.isEqual(NSRunningApplication.current)
         }
         return others.isEmpty
+    }
+
+    private func configureImagePipeline() {
+        var config = ImagePipeline.Configuration()
+        let dataCache = try? DataCache(name: "RepoBarAvatars")
+        dataCache?.sizeLimit = 64 * 1024 * 1024
+        config.dataCache = dataCache
+        let imageCache = ImageCache()
+        imageCache.costLimit = 64 * 1024 * 1024
+        config.imageCache = imageCache
+        ImagePipeline.shared = ImagePipeline(configuration: config)
     }
 }
 

@@ -1,5 +1,5 @@
 {
-  "originHash" : "031ad43aee41bb2618ab7df74b97b5b53a23a425356687dfbb95abe59b56ebbc",
+  "originHash" : "66ca7636f95624b544ba826ee24761fdf0d87c1f7f3d81f113c2b786c8f42e78",
   "pins" : [
     {
       "identity" : "apollo-ios",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "707dff6f55217b3ef5b6be84ced3e83511d4df5c",
         "version" : "1.2.2"
+      }
+    },
+    {
+      "identity" : "nuke",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kean/Nuke",
+      "state" : {
+        "revision" : "0ead44350d2737db384908569c012fe67c421e4d",
+        "version" : "12.8.0"
       }
     },
     {
