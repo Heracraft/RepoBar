@@ -326,17 +326,15 @@ struct MenuRepoFiltersView: View {
 
             Spacer(minLength: 6)
 
-            MenuFilterToggle(
-                title: "Issues",
-                isOn: Binding(
-                    get: { self.session.menuOnlyWith.requireIssues },
-                    set: { self.session.menuOnlyWith.requireIssues = $0 }))
-
-            MenuFilterToggle(
-                title: "PRs",
-                isOn: Binding(
-                    get: { self.session.menuOnlyWith.requirePRs },
-                    set: { self.session.menuOnlyWith.requirePRs = $0 }))
+            Picker("Filter", selection: self.$session.menuRepoFilter) {
+                ForEach(MenuRepoFilter.allCases, id: \.self) { filter in
+                    Text(filter.label).tag(filter)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .controlSize(.mini)
+            .fixedSize()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: self.session.menuRepoScope) { _, _ in
@@ -345,23 +343,8 @@ struct MenuRepoFiltersView: View {
         .onChange(of: self.session.settings.menuSortKey) { _, _ in
             NotificationCenter.default.post(name: .menuFiltersDidChange, object: nil)
         }
-        .onChange(of: self.session.menuOnlyWith) { _, _ in
+        .onChange(of: self.session.menuRepoFilter) { _, _ in
             NotificationCenter.default.post(name: .menuFiltersDidChange, object: nil)
         }
-    }
-}
-
-struct MenuFilterToggle: View {
-    let title: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Toggle(isOn: self.$isOn) {
-            Text(self.title)
-        }
-        .toggleStyle(.button)
-        .controlSize(.mini)
-        .buttonStyle(.borderless)
-        .accessibilityLabel(self.title)
     }
 }
