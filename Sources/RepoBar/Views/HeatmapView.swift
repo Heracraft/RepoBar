@@ -21,8 +21,12 @@ struct HeatmapView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let cellSide = HeatmapLayout.cellSide(for: size.height)
             let columns = HeatmapLayout.columnCount(cellCount: self.cells.count)
+            let cellSide = HeatmapLayout.cellSide(
+                forHeight: size.height,
+                width: size.width,
+                columns: columns
+            )
             let grid = HeatmapLayout.reshape(cells: self.cells, columns: columns)
             let xOffset: CGFloat = 0
             Canvas { context, _ in
@@ -108,6 +112,15 @@ enum HeatmapLayout {
         let availableHeight = max(height - totalSpacingY, 0)
         let side = availableHeight / CGFloat(rows)
         return max(minCellSide, min(maxCellSide, floor(side)))
+    }
+
+    static func cellSide(forHeight height: CGFloat, width: CGFloat, columns: Int) -> CGFloat {
+        let heightSide = cellSide(for: height)
+        let totalSpacingX = CGFloat(max(columns - 1, 0)) * spacing
+        let availableWidth = max(width - totalSpacingX, 0)
+        let widthSide = availableWidth / CGFloat(max(columns, 1))
+        let side = floor(min(heightSide, widthSide))
+        return max(minCellSide, min(maxCellSide, side))
     }
 
     static func reshape(cells: [HeatmapCell], columns: Int) -> [[HeatmapCell]] {
