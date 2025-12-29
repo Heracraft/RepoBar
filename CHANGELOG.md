@@ -61,3 +61,4 @@
 - Menu no longer preselects the first item on open.
 - Fixed a crash when opening menus with the raster heatmap renderer.
 - Heatmaps now pixel-align to avoid uneven left/right padding in the menu.
+- Heatmaps now fill the full menu row width (reclaim submenu chevron padding).
