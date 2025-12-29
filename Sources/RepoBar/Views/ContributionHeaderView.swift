@@ -80,23 +80,13 @@ struct ContributionHeaderView: View {
             VStack(spacing: 4) {
                 HeatmapView(cells: filtered, accentTone: self.session.settings.appearance.accentTone, height: Self.graphHeight)
                     .padding(.trailing, -MenuStyle.menuItemContainerTrailingPadding)
-                self.axisLabels(cellCount: filtered.count)
+                HeatmapAxisLabelsView(
+                    range: self.session.heatmapRange,
+                    foregroundStyle: MenuHighlightStyle.secondary(self.isHighlighted)
+                )
             }
             .accessibilityLabel("Contribution graph for \(self.username)")
         }
-    }
-
-    private func axisLabels(cellCount _: Int) -> some View {
-        let range = self.session.heatmapRange
-        return HStack {
-            Text(Self.axisFormatter.string(from: range.start))
-            Spacer()
-            Text(Self.axisFormatter.string(from: range.end))
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 14)
-        .font(.caption2)
-        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
     }
 
     private func openProfile() {
@@ -109,14 +99,6 @@ struct ContributionHeaderView: View {
         host.appendPathComponent(self.username)
         return host
     }
-
-    private static let axisFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "MMM yyyy"
-        return formatter
-    }()
 
     private var placeholder: some View {
         RoundedRectangle(cornerRadius: 8)

@@ -45,10 +45,13 @@
 - Repo submenus now list remaining repository details like CI run count and traffic stats when available.
 - Repo submenus now include the last 10 recent activity events with quick links.
 - Repo submenus now include nested lists for Issues and Pull Requests (20 most recently updated open items).
+- Repo recent item submenus now prefetch and reuse cached results to avoid showing a loading state.
+- Repo submenus now show item count badges for nested Issues/PRs/Releases.
 - Activity event links now deep-link to stars, releases, forks, and commits when available.
 - Recent activity now includes action/number labels, repo targets, and avatar icons.
 - Activity row now shows the latest activity timestamp aligned to the right.
 - Contribution and repository heatmaps now align to the same week-based date range.
+- Inline heatmaps now include the date range axis labels.
 - Heatmap rendering now uses cached CoreGraphics rasterization for faster menu redraws.
 - Heatmaps now stretch to the full available menu width (respecting existing card padding).
 - `repobar local --sync` now shows a per-repo SYNC column and includes a `synced` flag in JSON output.
@@ -64,4 +67,5 @@
 - Heatmaps now pixel-align to avoid uneven left/right padding in the menu.
 - Heatmaps now fill the full menu row width (reclaim submenu chevron padding).
 - Local projects branch detection now uses the first available git binary on PATH/Homebrew to avoid “unknown.”
+- Local projects scanning now correctly traverses security-scoped folder bookmarks resolved to file reference URLs.
 - CI status dots now increase contrast on highlighted menu rows.

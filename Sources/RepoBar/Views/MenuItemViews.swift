@@ -146,8 +146,14 @@ struct RepoMenuCardView: View {
     private var heatmap: some View {
         if self.showHeatmap, !self.repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(self.repo.heatmap, range: self.heatmapRange)
-            HeatmapView(cells: filtered, accentTone: self.accentTone, height: MenuStyle.heatmapInlineHeight)
-                .padding(.trailing, -MenuStyle.menuItemContainerTrailingPadding)
+            VStack(spacing: 4) {
+                HeatmapView(cells: filtered, accentTone: self.accentTone, height: MenuStyle.heatmapInlineHeight)
+                    .padding(.trailing, -MenuStyle.menuItemContainerTrailingPadding)
+                HeatmapAxisLabelsView(
+                    range: self.heatmapRange,
+                    foregroundStyle: MenuHighlightStyle.secondary(self.isHighlighted)
+                )
+            }
         }
     }
 

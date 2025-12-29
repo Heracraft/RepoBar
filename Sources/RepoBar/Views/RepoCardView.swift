@@ -181,7 +181,10 @@ struct RepoCardView: View {
     private var heatmap: some View {
         if self.session.settings.heatmap.display == .inline, !self.repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(self.repo.heatmap, range: self.session.heatmapRange)
-            HeatmapView(cells: filtered, accentTone: self.session.settings.appearance.accentTone)
+            VStack(spacing: 4) {
+                HeatmapView(cells: filtered, accentTone: self.session.settings.appearance.accentTone)
+                HeatmapAxisLabelsView(range: self.session.heatmapRange, foregroundStyle: Color.secondary)
+            }
         }
     }
 

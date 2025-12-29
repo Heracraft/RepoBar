@@ -201,12 +201,21 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             self.appState.refreshIfNeededForMenu()
             self.menuBuilder.populateMainMenu(menu)
             self.menuBuilder.refreshMenuViewHeights(in: menu)
+
+            let repoFullNames = Set(menu.items.compactMap { $0.representedObject as? String }.filter { $0.contains("/") })
+            self.prefetchRecentLists(fullNames: repoFullNames)
+
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.menuBuilder.refreshMenuViewHeights(in: menu)
                 menu.update()
                 self.menuBuilder.clearHighlights(in: menu)
             }
+        } else if let fullName = menu.items.first?.representedObject as? String,
+                  fullName.contains("/")
+        {
+            // Repo submenu opened; prefetch so nested recent lists appear instantly.
+            self.prefetchRecentLists(fullNames: [fullName])
         }
     }
 
@@ -255,8 +264,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 systemImage: "exclamationmark.circle"
             )
             let cached = self.recentIssuesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            if let cached {
-                self.populateRecentListMenu(menu, header: header, rows: .issues(cached))
+            let stale = cached ?? self.recentIssuesCache.stale(for: context.fullName)
+            if let stale {
+                self.populateRecentListMenu(menu, header: header, rows: .issues(stale))
             } else {
                 self.populateRecentListMenu(menu, header: header, rows: .loading)
             }
@@ -272,7 +282,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 self.recentIssuesCache.store(items, for: context.fullName, fetchedAt: Date())
                 self.populateRecentListMenu(menu, header: header, rows: .issues(items))
             } catch {
-                self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
+                if stale == nil {
+                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
+                }
             }
             menu.update()
         case .pullRequests:
@@ -283,8 +295,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 systemImage: "arrow.triangle.branch"
             )
             let cached = self.recentPullRequestsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            if let cached {
-                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(cached))
+            let stale = cached ?? self.recentPullRequestsCache.stale(for: context.fullName)
+            if let stale {
+                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(stale))
             } else {
                 self.populateRecentListMenu(menu, header: header, rows: .loading)
             }
@@ -300,7 +313,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 self.recentPullRequestsCache.store(items, for: context.fullName, fetchedAt: Date())
                 self.populateRecentListMenu(menu, header: header, rows: .pullRequests(items))
             } catch {
-                self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
+                if stale == nil {
+                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
+                }
             }
             menu.update()
         case .releases:
@@ -326,8 +341,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 : []
 
             let cached = self.recentReleasesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            if let cached {
-                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(cached))
+            let stale = cached ?? self.recentReleasesCache.stale(for: context.fullName)
+            if let stale {
+                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(stale))
             } else {
                 self.populateRecentListMenu(menu, header: header, actions: actions, rows: .loading)
             }
@@ -343,9 +359,66 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 self.recentReleasesCache.store(items, for: context.fullName, fetchedAt: Date())
                 self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(items))
             } catch {
-                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .message("Failed to load"))
+                if stale == nil {
+                    self.populateRecentListMenu(menu, header: header, actions: actions, rows: .message("Failed to load"))
+                }
             }
             menu.update()
+        }
+    }
+
+    private func prefetchRecentLists(fullNames: Set<String>) {
+        guard case .loggedIn = self.appState.session.account else { return }
+        guard fullNames.isEmpty == false else { return }
+
+        for fullName in fullNames {
+            self.prefetchRecentList(fullName: fullName, kind: .issues)
+            self.prefetchRecentList(fullName: fullName, kind: .pullRequests)
+            self.prefetchRecentList(fullName: fullName, kind: .releases)
+        }
+    }
+
+    private func prefetchRecentList(fullName: String, kind: RepoRecentMenuKind) {
+        guard let (owner, name) = self.ownerAndName(from: fullName) else { return }
+        let now = Date()
+
+        switch kind {
+        case .issues:
+            guard self.recentIssuesCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
+            let task = self.recentIssuesCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
+                try await github.recentIssues(owner: owner, name: name, limit: recentListLimit)
+            }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                defer { self.recentIssuesCache.clearInflight(for: fullName) }
+                if let items = try? await task.value {
+                    self.recentIssuesCache.store(items, for: fullName, fetchedAt: Date())
+                }
+            }
+        case .pullRequests:
+            guard self.recentPullRequestsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
+            let task = self.recentPullRequestsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
+                try await github.recentPullRequests(owner: owner, name: name, limit: recentListLimit)
+            }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                defer { self.recentPullRequestsCache.clearInflight(for: fullName) }
+                if let items = try? await task.value {
+                    self.recentPullRequestsCache.store(items, for: fullName, fetchedAt: Date())
+                }
+            }
+        case .releases:
+            guard self.recentReleasesCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
+            let task = self.recentReleasesCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
+                try await github.recentReleases(owner: owner, name: name, limit: recentListLimit)
+            }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                defer { self.recentReleasesCache.clearInflight(for: fullName) }
+                if let items = try? await task.value {
+                    self.recentReleasesCache.store(items, for: fullName, fetchedAt: Date())
+                }
+            }
         }
     }
 
@@ -557,6 +630,17 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     func registerRecentListMenu(_ menu: NSMenu, context: RepoRecentMenuContext) {
         self.recentListMenuContexts[ObjectIdentifier(menu)] = context
     }
+
+    func cachedRecentListCount(fullName: String, kind: RepoRecentMenuKind) -> Int? {
+        switch kind {
+        case .issues:
+            self.recentIssuesCache.stale(for: fullName)?.count
+        case .pullRequests:
+            self.recentPullRequestsCache.stale(for: fullName)?.count
+        case .releases:
+            self.recentReleasesCache.stale(for: fullName)?.count
+        }
+    }
 }
 
 private final class RecentListCache<Item: Sendable> {
@@ -571,6 +655,10 @@ private final class RecentListCache<Item: Sendable> {
         guard let entry = entries[key] else { return nil }
         guard now.timeIntervalSince(entry.fetchedAt) <= maxAge else { return nil }
         return entry.items
+    }
+
+    func stale(for key: String) -> [Item]? {
+        self.entries[key]?.items
     }
 
     func needsRefresh(for key: String, now: Date, maxAge: TimeInterval) -> Bool {

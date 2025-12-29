@@ -155,7 +155,8 @@ final class StatusBarMenuBuilder {
             fullName: repo.title,
             kind: .issues,
             openTitle: "Open Issues",
-            openAction: #selector(self.target.openIssues)
+            openAction: #selector(self.target.openIssues),
+            badgeText: repo.issues > 0 ? StatValueFormatter.compact(repo.issues) : nil
         ))
         menu.addItem(self.recentListSubmenuItem(
             title: "Pull Requests",
@@ -163,15 +164,18 @@ final class StatusBarMenuBuilder {
             fullName: repo.title,
             kind: .pullRequests,
             openTitle: "Open Pull Requests",
-            openAction: #selector(self.target.openPulls)
+            openAction: #selector(self.target.openPulls),
+            badgeText: repo.pulls > 0 ? StatValueFormatter.compact(repo.pulls) : nil
         ))
+        let cachedReleaseCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .releases)
         menu.addItem(self.recentListSubmenuItem(
             title: "Releases",
             systemImage: "tag",
             fullName: repo.title,
             kind: .releases,
             openTitle: "Open Releases",
-            openAction: #selector(self.target.openReleases)
+            openAction: #selector(self.target.openReleases),
+            badgeText: cachedReleaseCount.flatMap { $0 > 0 ? String($0) : nil }
         ))
 
         menu.addItem(self.actionItem(
@@ -287,7 +291,8 @@ final class StatusBarMenuBuilder {
         fullName: String,
         kind: RepoRecentMenuKind,
         openTitle: String,
-        openAction: Selector
+        openAction: Selector,
+        badgeText: String? = nil
     ) -> NSMenuItem {
         let submenu = NSMenu()
         submenu.autoenablesItems = false
@@ -305,14 +310,8 @@ final class StatusBarMenuBuilder {
         loading.isEnabled = false
         submenu.addItem(loading)
 
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.submenu = submenu
-        if let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil) {
-            image.size = NSSize(width: 14, height: 14)
-            image.isTemplate = true
-            item.image = image
-        }
-        return item
+        let row = RecentListSubmenuRowView(title: title, systemImage: systemImage, badgeText: badgeText)
+        return self.viewItem(for: row, enabled: true, highlightable: true, submenu: submenu)
     }
 
     func refreshMenuViewHeights(in menu: NSMenu) {
