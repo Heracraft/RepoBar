@@ -65,6 +65,10 @@ _Last updated: 2025-11-24_
   - Commit activity for heatmap: `GET /repos/{owner}/{repo}/stats/commit_activity` (weekly counts) and/or recent commits with since parameter to build finer day-resolution grid. (These endpoints may cache for minutes; handle 202/empty with backoff.)
 - Contribution image: simple URL fetch; cache and scale.
 
+### GitHub boundary (keep drift out)
+- All GitHub REST/GraphQL fetching lives in `RepoBarCore` (primarily `GitHubClient` + models).
+- App/UI code should not add new GitHub network calls directly; instead add a `RepoBarCore` API and consume it from the app/CLI.
+
 ## Permissions to request in GitHub App
 - Repository: Metadata (implicit), Contents: Read, Issues: Read, Pull requests: Read, Actions: Read, Checks: Read, Administration: Read (for traffic clones/views), Environments: Read (optional, for richer CI), Commit statuses.
 - Organization: none required beyond installation scope; install on orgs to reach private repos.
