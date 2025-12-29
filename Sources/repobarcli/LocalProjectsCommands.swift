@@ -80,6 +80,7 @@ struct LocalProjectsCommand: CommanderRunnableCommand {
         if self.sync {
             print("Synced: \(snapshot.syncedStatuses.count)")
         }
+        print("Discovered: \(snapshot.discoveredRepoCount)")
         if statuses.isEmpty {
             print("No repositories found.")
             return

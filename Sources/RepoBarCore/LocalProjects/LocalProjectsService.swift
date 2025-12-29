@@ -1,10 +1,12 @@
 import Foundation
 
 public struct LocalProjectsSnapshot: Equatable, Sendable {
+    public let discoveredRepoCount: Int
     public let statuses: [LocalRepoStatus]
     public let syncedStatuses: [LocalRepoStatus]
 
-    public init(statuses: [LocalRepoStatus], syncedStatuses: [LocalRepoStatus]) {
+    public init(discoveredRepoCount: Int, statuses: [LocalRepoStatus], syncedStatuses: [LocalRepoStatus]) {
+        self.discoveredRepoCount = discoveredRepoCount
         self.statuses = statuses
         self.syncedStatuses = syncedStatuses
     }
@@ -13,33 +15,58 @@ public struct LocalProjectsSnapshot: Equatable, Sendable {
 public struct LocalProjectsService {
     public init() {}
 
-    public func snapshot(
-        rootPath: String,
-        maxDepth: Int = 2,
-        autoSyncEnabled: Bool,
-        maxRepoCount: Int? = nil,
-        concurrencyLimit: Int = 8
-    ) async -> LocalProjectsSnapshot {
+    public func discoverRepoRoots(rootPath: String, maxDepth: Int = 2) -> [URL] {
         let fileManager = FileManager.default
-        let git = GitRunner()
         let expandedRoot = PathFormatter.expandTilde(rootPath)
         let rootURL = URL(fileURLWithPath: expandedRoot, isDirectory: true)
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: rootURL.path, isDirectory: &isDirectory),
               isDirectory.boolValue
         else {
-            return LocalProjectsSnapshot(statuses: [], syncedStatuses: [])
+            return []
+        }
+        return self.findGitRepos(in: rootURL, maxDepth: max(0, maxDepth), fileManager: fileManager)
+    }
+
+    public func snapshot(
+        rootPath: String,
+        maxDepth: Int = 2,
+        autoSyncEnabled: Bool,
+        maxRepoCount: Int? = nil,
+        includeOnlyRepoNames: Set<String>? = nil,
+        concurrencyLimit: Int = 8
+    ) async -> LocalProjectsSnapshot {
+        let repos = self.discoverRepoRoots(rootPath: rootPath, maxDepth: maxDepth)
+        return await self.snapshot(
+            repoRoots: repos,
+            autoSyncEnabled: autoSyncEnabled,
+            maxRepoCount: maxRepoCount,
+            includeOnlyRepoNames: includeOnlyRepoNames,
+            concurrencyLimit: concurrencyLimit
+        )
+    }
+
+    public func snapshot(
+        repoRoots: [URL],
+        autoSyncEnabled: Bool,
+        maxRepoCount: Int? = nil,
+        includeOnlyRepoNames: Set<String>? = nil,
+        concurrencyLimit: Int = 8
+    ) async -> LocalProjectsSnapshot {
+        let git = GitRunner()
+
+        guard repoRoots.isEmpty == false else {
+            return LocalProjectsSnapshot(discoveredRepoCount: 0, statuses: [], syncedStatuses: [])
         }
 
-        let repos = self.findGitRepos(in: rootURL, maxDepth: max(0, maxDepth), fileManager: fileManager)
-        guard repos.isEmpty == false else {
-            return LocalProjectsSnapshot(statuses: [], syncedStatuses: [])
-        }
+        let filtered = includeOnlyRepoNames.map { allowList in
+            repoRoots.filter { allowList.contains($0.lastPathComponent) }
+        } ?? repoRoots
 
         let limitedRepos: [URL] = if let maxRepoCount, maxRepoCount > 0 {
-            Array(repos.prefix(maxRepoCount))
+            Array(filtered.prefix(maxRepoCount))
         } else {
-            repos
+            filtered
         }
 
         let chunkSize = max(1, concurrencyLimit)
@@ -120,7 +147,11 @@ public struct LocalProjectsService {
             return lhs.path.path < rhs.path.path
         }
 
-        return LocalProjectsSnapshot(statuses: statuses, syncedStatuses: syncedStatuses)
+        return LocalProjectsSnapshot(
+            discoveredRepoCount: repoRoots.count,
+            statuses: statuses,
+            syncedStatuses: syncedStatuses
+        )
     }
 
     private func findGitRepos(in root: URL, maxDepth: Int, fileManager: FileManager) -> [URL] {

@@ -904,7 +904,7 @@ public actor GitHubClient {
             let retryAfter = self.retryAfterDate(from: response) ?? Date().addingTimeInterval(90)
             await self.backoff.setCooldown(url: response.url ?? url, until: retryAfter)
             let retryText = RelativeFormatter.string(from: retryAfter, relativeTo: Date())
-            let message = "GitHub is preparing repository stats (can take a few minutes); retry \(retryText)."
+            let message = "GitHub is still generating repository stats (HTTP 202, can take a few minutes); retry \(retryText)."
             await self.diag.message("202 for \(url.lastPathComponent); cooldown until \(retryAfter)")
             throw GitHubAPIError.serviceUnavailable(
                 retryAfter: retryAfter,

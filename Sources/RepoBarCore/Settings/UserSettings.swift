@@ -44,6 +44,7 @@ public struct AppearanceSettings: Equatable, Codable {
 
 public struct LocalProjectsSettings: Equatable, Codable {
     public var rootPath: String?
+    public var rootBookmarkData: Data?
     public var autoSyncEnabled: Bool = true
     public var preferredTerminal: String?
 

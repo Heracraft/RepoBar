@@ -103,6 +103,7 @@ final class AppState {
 
     init() {
         self.session.settings = self.settingsStore.load()
+        self.migrateLocalProjectsBookmarkIfPossible()
         Task {
             await self.github.setTokenProvider { @Sendable [weak self] () async throws -> OAuthTokens? in
                 try? await self?.auth.refreshIfNeeded()
@@ -112,6 +113,19 @@ final class AppState {
             self?.requestRefresh()
         }
         Task { await DiagnosticsLogger.shared.setEnabled(self.session.settings.diagnosticsEnabled) }
+    }
+
+    private func migrateLocalProjectsBookmarkIfPossible() {
+        guard let rootPath = self.session.settings.localProjects.rootPath,
+              rootPath.isEmpty == false,
+              self.session.settings.localProjects.rootBookmarkData == nil
+        else { return }
+
+        let url = URL(fileURLWithPath: PathFormatter.expandTilde(rootPath), isDirectory: true)
+        if let data = SecurityScopedBookmark.create(for: url) {
+            self.session.settings.localProjects.rootBookmarkData = data
+            self.settingsStore.save(self.session.settings)
+        }
     }
 
     func refreshIfNeededForMenu() {
@@ -173,21 +187,26 @@ final class AppState {
     func refresh() async {
         let localSettings = self.session.settings.localProjects
         self.session.localProjectsScanInProgress = (localSettings.rootPath?.isEmpty == false)
-        let localIndexTask = Task { await self.localRepoManager.snapshot(settings: localSettings) }
         do {
             if Task.isCancelled { return }
             let now = Date()
             self.updateHeatmapRange(now: now)
             if self.auth.loadTokens() == nil {
+                let matchNames = self.localMatchRepoNamesForLocalProjects(repos: [], includePinned: true)
+                let localSnapshot = await self.localRepoManager.snapshot(
+                    rootPath: localSettings.rootPath,
+                    rootBookmarkData: localSettings.rootBookmarkData,
+                    autoSyncEnabled: localSettings.autoSyncEnabled,
+                    matchRepoNames: matchNames,
+                    forceRescan: false
+                )
                 await MainActor.run {
                     self.session.repositories = []
                     self.session.menuSnapshot = nil
                     self.session.hasLoadedRepositories = false
                     self.session.lastError = nil
-                }
-                let localIndex = await localIndexTask.value
-                await MainActor.run {
-                    self.session.localRepoIndex = localIndex
+                    self.session.localRepoIndex = localSnapshot.repoIndex
+                    self.session.localDiscoveredRepoCount = localSnapshot.discoveredCount
                     self.session.localProjectsScanInProgress = false
                 }
                 return
@@ -202,15 +221,26 @@ final class AppState {
             try Task.checkCancellation()
             let visible = self.applyVisibilityFilters(to: repos)
             let ordered = self.applyPinnedOrder(to: visible)
+            let matchNames = self.localMatchRepoNamesForLocalProjects(repos: ordered, includePinned: true)
+            let localSnapshotTask = Task {
+                await self.localRepoManager.snapshot(
+                    rootPath: localSettings.rootPath,
+                    rootBookmarkData: localSettings.rootBookmarkData,
+                    autoSyncEnabled: localSettings.autoSyncEnabled,
+                    matchRepoNames: matchNames,
+                    forceRescan: false
+                )
+            }
             let targets = self.selectMenuTargets(from: ordered)
             let hydrated = await self.hydrateMenuTargets(targets)
             try Task.checkCancellation()
             let merged = self.mergeHydrated(hydrated, into: ordered)
             let final = self.applyPinnedOrder(to: merged)
-            let localIndex = await localIndexTask.value
+            let localSnapshot = await localSnapshotTask.value
             await self.updateSession(with: final, now: now)
             await MainActor.run {
-                self.session.localRepoIndex = localIndex
+                self.session.localRepoIndex = localSnapshot.repoIndex
+                self.session.localDiscoveredRepoCount = localSnapshot.discoveredCount
                 self.session.localProjectsScanInProgress = false
             }
             self.prefetchMenuTargets(from: final, visibleCount: targets.count, token: self.refreshTaskToken)
@@ -221,16 +251,14 @@ final class AppState {
                 self.session.lastError = message
             }
         } catch {
-            let localIndex = await localIndexTask.value
             await MainActor.run {
-                self.session.localRepoIndex = localIndex
                 self.session.localProjectsScanInProgress = false
                 self.session.lastError = error.userFacingMessage
             }
         }
     }
 
-    func refreshLocalProjects(cancelInFlight: Bool = true) {
+    func refreshLocalProjects(cancelInFlight: Bool = true, forceRescan: Bool = false) {
         if cancelInFlight {
             self.localProjectsTask?.cancel()
         }
@@ -240,6 +268,7 @@ final class AppState {
               rootPath.isEmpty == false
         else {
             self.session.localRepoIndex = .empty
+            self.session.localDiscoveredRepoCount = 0
             self.session.localProjectsScanInProgress = false
             return
         }
@@ -247,12 +276,37 @@ final class AppState {
         self.session.localProjectsScanInProgress = true
         self.localProjectsTask = Task { [weak self] in
             guard let self else { return }
-            let localIndex = await self.localRepoManager.snapshot(settings: settings)
+            let matchNames = self.localMatchRepoNamesForLocalProjects(
+                repos: self.session.repositories.isEmpty
+                    ? (self.session.menuSnapshot?.repositories ?? [])
+                    : self.session.repositories,
+                includePinned: true
+            )
+            let localSnapshot = await self.localRepoManager.snapshot(
+                rootPath: settings.rootPath,
+                rootBookmarkData: settings.rootBookmarkData,
+                autoSyncEnabled: settings.autoSyncEnabled,
+                matchRepoNames: matchNames,
+                forceRescan: forceRescan
+            )
             await MainActor.run {
-                self.session.localRepoIndex = localIndex
+                self.session.localRepoIndex = localSnapshot.repoIndex
+                self.session.localDiscoveredRepoCount = localSnapshot.discoveredCount
                 self.session.localProjectsScanInProgress = false
             }
         }
+    }
+
+    private func localMatchRepoNamesForLocalProjects(repos: [Repository], includePinned: Bool) -> Set<String> {
+        var names = Set(repos.map(\.name))
+        guard includePinned else { return names }
+        let pinned = self.session.settings.repoList.pinnedRepositories
+        for fullName in pinned {
+            if let last = fullName.split(separator: "/").last {
+                names.insert(String(last))
+            }
+        }
+        return names
     }
 
     private func fetchActivityRepos() async throws -> [Repository] {
@@ -534,6 +588,7 @@ final class Session {
     var heatmapRange: HeatmapRange = HeatmapFilter.range(span: .twelveMonths, now: Date(), alignToWeek: true)
     var menuRepoSelection: MenuRepoSelection = .all
     var localRepoIndex: LocalRepoIndex = .empty
+    var localDiscoveredRepoCount = 0
     var localProjectsScanInProgress = false
 }
 

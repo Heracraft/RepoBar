@@ -289,8 +289,8 @@ struct GeneralSettingsView: View {
                 Spacer()
                 Button("Quit RepoBar") { NSApp.terminate(nil) }
             }
-            .padding(.top, 4)
-            .padding(.bottom, 6)
+            .padding(.top, 6)
+            .padding(.bottom, 14)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -342,6 +342,13 @@ struct AdvancedSettingsView: View {
                             .foregroundStyle(self.projectFolderLabelColor)
                         Button("Choose…") { self.pickProjectFolder() }
                         if self.session.settings.localProjects.rootPath != nil {
+                            Button {
+                                self.appState.refreshLocalProjects(forceRescan: true)
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Rescan local projects")
                             Button("Clear") { self.clearProjectFolder() }
                         }
                     }
@@ -357,6 +364,7 @@ struct AdvancedSettingsView: View {
                     .disabled(self.session.settings.localProjects.rootPath == nil)
                     .onChange(of: self.session.settings.localProjects.autoSyncEnabled) { _, _ in
                         self.appState.persistSettings()
+                        self.appState.refreshLocalProjects()
                         self.appState.requestRefresh(cancelInFlight: true)
                     }
 
@@ -429,9 +437,14 @@ struct AdvancedSettingsView: View {
     private var localRepoSummary: String? {
         guard self.session.settings.localProjects.rootPath != nil else { return nil }
         if self.session.localProjectsScanInProgress { return "Scanning…" }
-        let total = self.session.localRepoIndex.all.count
+        let total = self.session.localDiscoveredRepoCount
         let matched = self.localMatchedRepoCount
-        if total == 0 { return "No repositories found yet." }
+        if total == 0 {
+            if self.session.settings.localProjects.rootBookmarkData == nil {
+                return "No repositories found yet. Re-choose the folder to grant access."
+            }
+            return "No repositories found yet."
+        }
         if matched > 0 { return "Found \(total) local repos · \(matched) match GitHub data." }
         return "Found \(total) local repos."
     }
@@ -480,16 +493,18 @@ struct AdvancedSettingsView: View {
         }
         if panel.runModal() == .OK, let url = panel.url {
             self.session.settings.localProjects.rootPath = PathFormatter.abbreviateHome(url.path)
+            self.session.settings.localProjects.rootBookmarkData = SecurityScopedBookmark.create(for: url)
             self.appState.persistSettings()
-            self.appState.refreshLocalProjects()
+            self.appState.refreshLocalProjects(forceRescan: true)
             self.appState.requestRefresh(cancelInFlight: true)
         }
     }
 
     private func clearProjectFolder() {
         self.session.settings.localProjects.rootPath = nil
+        self.session.settings.localProjects.rootBookmarkData = nil
         self.appState.persistSettings()
-        self.appState.refreshLocalProjects()
+        self.appState.refreshLocalProjects(forceRescan: true)
         self.appState.requestRefresh(cancelInFlight: true)
     }
 

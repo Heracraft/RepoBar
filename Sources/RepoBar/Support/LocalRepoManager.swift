@@ -3,23 +3,154 @@ import RepoBarCore
 
 actor LocalRepoManager {
     private let notifier = LocalSyncNotifier.shared
+    private let discoveryCacheTTL: TimeInterval = 10 * 60
+    private let statusCacheTTL: TimeInterval = 2 * 60
+    private var discoveryCache: [String: DiscoveryCacheEntry] = [:]
+    private var statusCache: [String: StatusCacheEntry] = [:]
 
-    func snapshot(settings: LocalProjectsSettings) async -> LocalRepoIndex {
-        guard let rootPath = settings.rootPath,
+    struct SnapshotResult: Sendable {
+        let discoveredCount: Int
+        let repoIndex: LocalRepoIndex
+    }
+
+    func snapshot(
+        rootPath: String?,
+        rootBookmarkData: Data?,
+        autoSyncEnabled: Bool,
+        matchRepoNames: Set<String>,
+        forceRescan: Bool
+    ) async -> SnapshotResult {
+        guard let rootPath,
               rootPath.isEmpty == false
         else {
-            return .empty
+            return SnapshotResult(discoveredCount: 0, repoIndex: .empty)
         }
-        let snapshot = await LocalProjectsService().snapshot(
-            rootPath: rootPath,
-            maxDepth: 2,
-            autoSyncEnabled: settings.autoSyncEnabled
+
+        let now = Date()
+
+        let fallbackURL = URL(fileURLWithPath: PathFormatter.expandTilde(rootPath), isDirectory: true)
+        let rootURL = rootBookmarkData
+            .flatMap(SecurityScopedBookmark.resolve)
+            ?? fallbackURL
+
+        let didStart = rootURL.startAccessingSecurityScopedResource()
+        defer {
+            if didStart {
+                rootURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let resolvedRoot = rootURL.resolvingSymlinksInPath().path
+
+        let repoRoots = self.discoverRepoRoots(
+            rootPath: rootURL.path,
+            resolvedRoot: resolvedRoot,
+            now: now,
+            forceRescan: forceRescan
         )
 
-        for status in snapshot.syncedStatuses {
+        let (cachedStatuses, refreshRoots) = self.partitionStatusesToRefresh(
+            repoRoots: repoRoots,
+            matchRepoNames: matchRepoNames,
+            now: now,
+            forceRefresh: forceRescan,
+            autoSyncEnabled: autoSyncEnabled
+        )
+
+        let refreshedSnapshot = await LocalProjectsService().snapshot(
+            repoRoots: refreshRoots,
+            autoSyncEnabled: autoSyncEnabled,
+            includeOnlyRepoNames: nil,
+            concurrencyLimit: 6
+        )
+
+        for status in refreshedSnapshot.statuses {
+            self.statusCache[status.path.path] = StatusCacheEntry(status: status, updatedAt: now)
+        }
+
+        for status in refreshedSnapshot.syncedStatuses {
             await self.notifier.notifySync(for: status)
         }
 
-        return LocalRepoIndex(statuses: snapshot.statuses)
+        let allStatuses = cachedStatuses + refreshedSnapshot.statuses
+        return SnapshotResult(
+            discoveredCount: repoRoots.count,
+            repoIndex: LocalRepoIndex(statuses: allStatuses)
+        )
+    }
+
+    private struct DiscoveryCacheEntry {
+        let repoRoots: [URL]
+        let discoveredAt: Date
+    }
+
+    private struct StatusCacheEntry {
+        let status: LocalRepoStatus
+        let updatedAt: Date
+    }
+
+    private func discoverRepoRoots(
+        rootPath: String,
+        resolvedRoot: String,
+        now: Date,
+        forceRescan: Bool
+    ) -> [URL] {
+        if forceRescan == false,
+           let cached = self.discoveryCache[resolvedRoot],
+           now.timeIntervalSince(cached.discoveredAt) < self.discoveryCacheTTL
+        {
+            return cached.repoRoots
+        }
+
+        let roots = LocalProjectsService().discoverRepoRoots(rootPath: rootPath, maxDepth: 2)
+        self.discoveryCache[resolvedRoot] = DiscoveryCacheEntry(repoRoots: roots, discoveredAt: now)
+        return roots
+    }
+
+    private func partitionStatusesToRefresh(
+        repoRoots: [URL],
+        matchRepoNames: Set<String>,
+        now: Date,
+        forceRefresh: Bool,
+        autoSyncEnabled: Bool
+    ) -> (cached: [LocalRepoStatus], refresh: [URL]) {
+        guard repoRoots.isEmpty == false else { return ([], []) }
+
+        let interesting: [URL] = if matchRepoNames.isEmpty {
+            []
+        } else {
+            repoRoots.filter { matchRepoNames.contains($0.lastPathComponent) }
+        }
+
+        var cached: [LocalRepoStatus] = []
+        var refresh: [URL] = []
+        cached.reserveCapacity(interesting.count)
+        refresh.reserveCapacity(interesting.count)
+
+        for repoURL in interesting {
+            let key = repoURL.path
+            guard let entry = self.statusCache[key] else {
+                refresh.append(repoURL)
+                continue
+            }
+
+            if forceRefresh {
+                refresh.append(repoURL)
+                continue
+            }
+
+            if autoSyncEnabled, entry.status.canAutoSync {
+                refresh.append(repoURL)
+                continue
+            }
+
+            if now.timeIntervalSince(entry.updatedAt) < self.statusCacheTTL {
+                cached.append(entry.status)
+            } else {
+                refresh.append(repoURL)
+            }
+        }
+
+        return (cached, refresh)
     }
 }

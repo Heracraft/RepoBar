@@ -248,6 +248,7 @@ func printHelp(_ target: HelpTarget) {
           repobar repo <owner/name> [--traffic] [--heatmap] [--release] [--json] [--plain]
           repobar issues <owner/name> [--limit N] [--json] [--plain]
           repobar pulls <owner/name> [--limit N] [--json] [--plain]
+          repobar local [--root PATH] [--depth N] [--sync] [--limit N] [--json] [--plain]
           repobar refresh [--json] [--plain]
           repobar contributions [--login USER] [--json] [--plain]
           repobar login [--host URL] [--client-id ID] [--client-secret SECRET] [--loopback-port PORT]
@@ -335,6 +336,22 @@ func printHelp(_ target: HelpTarget) {
           --plain     Plain output (no links, no colors)
           --no-color  Disable color output
         """
+    case .local:
+        """
+        repobar local - scan local projects
+
+        Usage:
+          repobar local [--root PATH] [--depth N] [--sync] [--limit N] [--json] [--plain]
+
+        Options:
+          --root PATH  Project folder to scan (defaults to settings value, then ~/Projects)
+          --depth N    Max scan depth (default: 2)
+          --sync       Fast-forward pull clean repos that are behind
+          --limit N    Limit processed repos (default: all)
+          --json       Output JSON instead of formatted table
+          --plain      Plain table output (no links, no colors, no URLs)
+          --no-color   Disable color output
+        """
     case .refresh:
         """
         repobar refresh - refresh pinned repositories
@@ -380,22 +397,6 @@ func printHelp(_ target: HelpTarget) {
 
         Usage:
           repobar status [--json]
-        """
-    case .local:
-        """
-        repobar local - scan local project folder for Git repositories
-
-        Usage:
-          repobar local [--root PATH] [--depth N] [--sync] [--limit N] [--json] [--plain]
-
-        Options:
-          --root PATH  Project folder to scan (defaults to settings value, then ~/Projects)
-          --depth N    Max scan depth (default: 2)
-          --sync       Fast-forward pull clean repos that are behind
-          --limit N    Limit processed repos (default: all)
-          --json       Output JSON instead of formatted text
-          --plain      Plain output (no colors)
-          --no-color   Disable color output
         """
     }
     print(text)
