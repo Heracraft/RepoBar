@@ -47,14 +47,39 @@ public struct RepoPullRequestSummary: Sendable, Hashable {
     public let url: URL
     public let updatedAt: Date
     public let authorLogin: String?
+    public let authorAvatarURL: URL?
     public let isDraft: Bool
+    public let commentCount: Int
+    public let reviewCommentCount: Int
+    public let labels: [RepoIssueLabel]
+    public let headRefName: String?
+    public let baseRefName: String?
 
-    public init(number: Int, title: String, url: URL, updatedAt: Date, authorLogin: String?, isDraft: Bool) {
+    public init(
+        number: Int,
+        title: String,
+        url: URL,
+        updatedAt: Date,
+        authorLogin: String?,
+        authorAvatarURL: URL?,
+        isDraft: Bool,
+        commentCount: Int,
+        reviewCommentCount: Int,
+        labels: [RepoIssueLabel],
+        headRefName: String?,
+        baseRefName: String?
+    ) {
         self.number = number
         self.title = title
         self.url = url
         self.updatedAt = updatedAt
         self.authorLogin = authorLogin
+        self.authorAvatarURL = authorAvatarURL
         self.isDraft = isDraft
+        self.commentCount = commentCount
+        self.reviewCommentCount = reviewCommentCount
+        self.labels = labels
+        self.headRefName = headRefName
+        self.baseRefName = baseRefName
     }
 }

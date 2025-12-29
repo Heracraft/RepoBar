@@ -227,12 +227,19 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     private func refreshRecentListMenu(menu: NSMenu, context: RepoRecentMenuContext) async {
         guard case .loggedIn = self.appState.session.account else {
-            self.populateRecentListMenu(menu, openTitle: "Sign in to view", openAction: nil, fullName: context.fullName, systemImage: nil, rows: .signedOut)
+            let header = RecentMenuHeader(title: "Sign in to view", action: nil, fullName: context.fullName, systemImage: nil)
+            self.populateRecentListMenu(menu, header: header, rows: .signedOut)
             menu.update()
             return
         }
         guard let (owner, name) = self.ownerAndName(from: context.fullName) else {
-            self.populateRecentListMenu(menu, openTitle: "Open on GitHub", openAction: #selector(self.openRepo), fullName: context.fullName, systemImage: "folder", rows: .message("Invalid repository name"))
+            let header = RecentMenuHeader(
+                title: "Open on GitHub",
+                action: #selector(self.openRepo),
+                fullName: context.fullName,
+                systemImage: "folder"
+            )
+            self.populateRecentListMenu(menu, header: header, rows: .message("Invalid repository name"))
             menu.update()
             return
         }
@@ -240,25 +247,17 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let now = Date()
         switch context.kind {
         case .issues:
+            let header = RecentMenuHeader(
+                title: "Open Issues",
+                action: #selector(self.openIssues),
+                fullName: context.fullName,
+                systemImage: "exclamationmark.circle"
+            )
             let cached = self.recentIssuesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
             if let cached {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Issues",
-                    openAction: #selector(self.openIssues),
-                    fullName: context.fullName,
-                    systemImage: "exclamationmark.circle",
-                    rows: .issues(cached)
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .issues(cached))
             } else {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Issues",
-                    openAction: #selector(self.openIssues),
-                    fullName: context.fullName,
-                    systemImage: "exclamationmark.circle",
-                    rows: .loading
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .loading)
             }
             menu.update()
 
@@ -270,45 +269,23 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             do {
                 let items = try await task.value
                 self.recentIssuesCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Issues",
-                    openAction: #selector(self.openIssues),
-                    fullName: context.fullName,
-                    systemImage: "exclamationmark.circle",
-                    rows: .issues(items)
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .issues(items))
             } catch {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Issues",
-                    openAction: #selector(self.openIssues),
-                    fullName: context.fullName,
-                    systemImage: "exclamationmark.circle",
-                    rows: .message("Failed to load")
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
             }
             menu.update()
         case .pullRequests:
+            let header = RecentMenuHeader(
+                title: "Open Pull Requests",
+                action: #selector(self.openPulls),
+                fullName: context.fullName,
+                systemImage: "arrow.triangle.branch"
+            )
             let cached = self.recentPullRequestsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
             if let cached {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Pull Requests",
-                    openAction: #selector(self.openPulls),
-                    fullName: context.fullName,
-                    systemImage: "arrow.triangle.branch",
-                    rows: .pullRequests(cached)
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(cached))
             } else {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Pull Requests",
-                    openAction: #selector(self.openPulls),
-                    fullName: context.fullName,
-                    systemImage: "arrow.triangle.branch",
-                    rows: .loading
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .loading)
             }
             menu.update()
 
@@ -320,23 +297,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             do {
                 let items = try await task.value
                 self.recentPullRequestsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Pull Requests",
-                    openAction: #selector(self.openPulls),
-                    fullName: context.fullName,
-                    systemImage: "arrow.triangle.branch",
-                    rows: .pullRequests(items)
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(items))
             } catch {
-                self.populateRecentListMenu(
-                    menu,
-                    openTitle: "Open Pull Requests",
-                    openAction: #selector(self.openPulls),
-                    fullName: context.fullName,
-                    systemImage: "arrow.triangle.branch",
-                    rows: .message("Failed to load")
-                )
+                self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
             }
             menu.update()
         }
@@ -350,25 +313,26 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         case pullRequests([RepoPullRequestSummary])
     }
 
-    private func populateRecentListMenu(
-        _ menu: NSMenu,
-        openTitle: String,
-        openAction: Selector?,
-        fullName: String,
-        systemImage: String?,
-        rows: RecentMenuRows
-    ) {
+    private struct RecentMenuHeader {
+        let title: String
+        let action: Selector?
+        let fullName: String
+        let systemImage: String?
+    }
+
+    private func populateRecentListMenu(_ menu: NSMenu, header: RecentMenuHeader, rows: RecentMenuRows) {
         menu.removeAllItems()
 
-        let open = NSMenuItem(title: openTitle, action: openAction, keyEquivalent: "")
-        open.target = self
-        open.representedObject = fullName
-        if let systemImage, let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil) {
-            image.size = NSSize(width: 14, height: 14)
-            image.isTemplate = true
-            open.image = image
-        }
-        open.isEnabled = openAction != nil
+        let open = NSMenuItem(title: header.title, action: header.action, keyEquivalent: "")
+	        open.target = self
+	        open.representedObject = header.fullName
+	        if let systemImage = header.systemImage,
+	           let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil) {
+	            image.size = NSSize(width: 14, height: 14)
+	            image.isTemplate = true
+	            open.image = image
+	        }
+        open.isEnabled = header.action != nil
         menu.addItem(open)
 
         menu.addItem(.separator())
@@ -405,22 +369,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 return
             }
             for pr in items.prefix(self.recentListLimit) {
-                let prefix = pr.isDraft ? "Draft " : ""
-                let item = NSMenuItem(
-                    title: prefix + self.recentItemTitle(number: pr.number, title: pr.title),
-                    action: #selector(self.openURLItem),
-                    keyEquivalent: ""
-                )
-                item.target = self
-                item.representedObject = pr.url
-                item.toolTip = self.recentItemTooltip(title: pr.title, author: pr.authorLogin, updatedAt: pr.updatedAt)
-                if let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: nil) {
-                    image.size = NSSize(width: 14, height: 14)
-                    image.isTemplate = true
-                    item.image = image
-                }
-                menu.addItem(item)
+                self.addPullRequestMenuItem(pr, to: menu)
             }
+            self.menuBuilder.refreshMenuViewHeights(in: menu)
         }
     }
 
@@ -439,11 +390,23 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         menu.addItem(item)
     }
 
-    private func recentItemTitle(number: Int, title: String) -> String {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let prefix = String(trimmed.prefix(80))
-        let suffix = trimmed.count > 80 ? "…" : ""
-        return "#\(number) \(prefix)\(suffix)"
+    private func addPullRequestMenuItem(_ pullRequest: RepoPullRequestSummary, to menu: NSMenu) {
+        let highlightState = MenuItemHighlightState()
+        let view = MenuItemContainerView(highlightState: highlightState, showsSubmenuIndicator: false) {
+            PullRequestMenuItemView(pullRequest: pullRequest) { [weak self] in
+                self?.open(url: pullRequest.url)
+            }
+        }
+
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.isEnabled = true
+        item.view = MenuItemHostingView(rootView: AnyView(view), highlightState: highlightState)
+        item.toolTip = self.recentItemTooltip(
+            title: pullRequest.title,
+            author: pullRequest.authorLogin,
+            updatedAt: pullRequest.updatedAt
+        )
+        menu.addItem(item)
     }
 
     private func recentItemTooltip(title: String, author: String?, updatedAt: Date) -> String {

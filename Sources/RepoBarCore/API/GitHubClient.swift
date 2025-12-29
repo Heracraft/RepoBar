@@ -787,7 +787,13 @@ public actor GitHubClient {
                 url: $0.htmlUrl,
                 updatedAt: $0.updatedAt,
                 authorLogin: $0.user?.login,
-                isDraft: $0.draft ?? false
+                authorAvatarURL: $0.user?.avatarUrl,
+                isDraft: $0.draft ?? false,
+                commentCount: $0.comments ?? 0,
+                reviewCommentCount: $0.reviewComments ?? 0,
+                labels: ($0.labels ?? []).map { RepoIssueLabel(name: $0.name, colorHex: $0.color) },
+                headRefName: $0.head?.refName,
+                baseRefName: $0.base?.refName
             )
         }
     }
@@ -819,11 +825,25 @@ public actor GitHubClient {
         let updatedAt: Date
         let user: RecentUser?
         let draft: Bool?
+        let comments: Int?
+        let reviewComments: Int?
+        let labels: [IssueLabel]?
+        let head: PullRequestRef?
+        let base: PullRequestRef?
 
         enum CodingKeys: String, CodingKey {
-            case number, title, user, draft
+            case number, title, user, draft, comments, labels, head, base
             case htmlUrl = "html_url"
             case updatedAt = "updated_at"
+            case reviewComments = "review_comments"
+        }
+    }
+
+    private struct PullRequestRef: Decodable {
+        let refName: String
+
+        enum CodingKeys: String, CodingKey {
+            case refName = "ref"
         }
     }
 

@@ -51,7 +51,14 @@ struct RecentRepoItemsDecodingTests {
             "html_url": "https://github.com/acme/widget/pull/42",
             "updated_at": "2025-12-27T09:30:00Z",
             "draft": true,
-            "user": { "login": "steipete" }
+            "comments": 2,
+            "review_comments": 5,
+            "labels": [
+              { "name": "bug", "color": "d73a4a" }
+            ],
+            "head": { "ref": "feature/menu-rows" },
+            "base": { "ref": "main" },
+            "user": { "login": "steipete", "avatar_url": "https://avatars.githubusercontent.com/u/583?v=4" }
           }
         ]
         """
@@ -61,5 +68,11 @@ struct RecentRepoItemsDecodingTests {
         #expect(items.first?.number == 42)
         #expect(items.first?.isDraft == true)
         #expect(items.first?.authorLogin == "steipete")
+        #expect(items.first?.authorAvatarURL != nil)
+        #expect(items.first?.commentCount == 2)
+        #expect(items.first?.reviewCommentCount == 5)
+        #expect(items.first?.labels.first?.name == "bug")
+        #expect(items.first?.headRefName == "feature/menu-rows")
+        #expect(items.first?.baseRefName == "main")
     }
 }
