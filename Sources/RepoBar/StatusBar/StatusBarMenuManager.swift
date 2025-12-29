@@ -170,7 +170,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             self.menuBuilder.populateMainMenu(menu)
             self.menuBuilder.refreshMenuViewHeights(in: menu)
             DispatchQueue.main.async { [weak self] in
-                self?.menuBuilder.clearHighlights(in: menu)
+                guard let self else { return }
+                self.menuBuilder.refreshMenuViewHeights(in: menu)
+                menu.update()
+                self.menuBuilder.clearHighlights(in: menu)
             }
         }
     }

@@ -271,8 +271,16 @@ final class StatusBarMenuBuilder {
         }
     }
 
-    private func menuWidth(for _: NSMenu) -> CGFloat {
-        Self.menuFixedWidth
+    private func menuWidth(for menu: NSMenu) -> CGFloat {
+        if let view = menu.items.compactMap(\.view).first,
+           let windowWidth = view.window?.frame.width,
+           windowWidth > 0
+        {
+            return windowWidth
+        }
+        let menuWidth = menu.size.width
+        if menuWidth > 0 { return menuWidth }
+        return Self.menuFixedWidth
     }
 
     private func repoDetailItems(for repo: RepositoryDisplayModel) -> [NSMenuItem] {
