@@ -8,12 +8,13 @@
 ## Build, Test, and Development Commands
 - Use pnpm scripts from repo root (pnpm v10+, Swift 6.2, Xcode 26): `pnpm install` once for script deps.
 - `pnpm check` → swiftformat + swiftlint + swift test (use before PRs).
-- `pnpm test` → `swift test`; add `--filter` for focused runs.
+- `pnpm check:coverage` → coverage run (isolated build dir under `.build/coverage`).
+- `pnpm test` → `Scripts/test.sh` (SwiftPM `--cache-path ~/Library/Caches/RepoBar/swiftpm`); add `--filter` for focused runs.
 - `pnpm build` → `swift build` (debug).
-- `pnpm start` → `Scripts/compile_and_run.sh` launches the menubar app; quit via `pnpm stop` or the menu. `pnpm restart` is available.
+- `pnpm start` / `pnpm restart` → `Scripts/compile_and_run.sh` rebuilds + packages/codesigns + relaunches the menubar app (no tests); quit via `pnpm stop` or the menu.
 - Guardrail: always launch via `pnpm start`/`pnpm restart` from `~/Projects/RepoBar` (other checkouts under `/private/tmp/...` can look identical in the menubar). If behavior/UI doesn’t match code, verify the running binary path: `pgrep -af "RepoBar.app/Contents/MacOS/RepoBar"`.
 - `pnpm codegen` only after GraphQL schema access is configured; leaves outputs in `Sources/RepoBar/API/Generated`.
-- Preferred workflow: after any code change run `Scripts/compile_and_run.sh` (via `pnpm start`/`pnpm restart`) to rebuild, test, codesign the debug app, and relaunch so you never run a stale bundle.
+- Preferred workflow: after any code change run `pnpm restart` to rebuild/relaunch, and run `pnpm test` when you actually need tests.
 
 ## Coding Style & Naming Conventions
 - Enforce formatting with `swiftformat` (4-space indent, inline commas, wrap args/collections before first element, no semicolons) and lint with `swiftlint` (see `.swiftlint.yml`; unused imports/declarations flagged, many length limits disabled).
