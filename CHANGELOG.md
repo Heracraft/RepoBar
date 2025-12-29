@@ -54,6 +54,7 @@
 - Inline heatmaps now include the date range axis labels.
 - Heatmap rendering now uses cached CoreGraphics rasterization for faster menu redraws.
 - Heatmaps now stretch to the full available menu width (respecting existing card padding).
+- `pnpm restart` now rebuilds and relaunches without running tests; use `pnpm test` for tests and `pnpm check:coverage` for coverage.
 - `repobar local --sync` now shows a per-repo SYNC column and includes a `synced` flag in JSON output.
 
 ### Fixed

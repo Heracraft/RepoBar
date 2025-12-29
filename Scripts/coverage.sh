@@ -4,15 +4,19 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+CACHE_PATH="${HOME}/Library/Caches/RepoBar/swiftpm"
+COVERAGE_BUILD_PATH="${ROOT_DIR}/.build/coverage"
+mkdir -p "${CACHE_PATH}"
+
 MIN_COVERAGE="${COVERAGE_MIN:-70}"
 INCLUDE_REGEX="${COVERAGE_INCLUDE_REGEX:-/Sources/RepoBarCore/}"
 EXCLUDE_REGEX="${COVERAGE_EXCLUDE_REGEX:-/Sources/RepoBarCore/API/}"
 
-echo "==> swift test --enable-code-coverage"
-swift test --enable-code-coverage >/dev/null
+echo "==> swift test --enable-code-coverage (isolated build dir)"
+swift test --enable-code-coverage --build-path "${COVERAGE_BUILD_PATH}" --cache-path "${CACHE_PATH}" >/dev/null
 
 REPORT_JSON="$(
-  find .build -type f -path "*debug/codecov/RepoBar.json" -print0 2>/dev/null \
+  find "${COVERAGE_BUILD_PATH}" -type f -path "*debug/codecov/RepoBar.json" -print0 2>/dev/null \
     | xargs -0 ls -t 2>/dev/null \
     | head -n 1
 )"
@@ -78,4 +82,3 @@ for filename, covered, count in worst:
 if percent + 1e-9 < min_coverage:
     sys.exit(2)
 PY
-

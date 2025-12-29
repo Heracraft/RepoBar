@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="RepoBar"
 APP_PROCESS_PATTERN="${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+CACHE_PATH="${HOME}/Library/Caches/RepoBar/swiftpm"
 log() { printf '%s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
@@ -32,12 +33,11 @@ kill_existing() {
 log "==> Killing existing ${APP_NAME} instances"
 kill_existing
 
-log "==> swift build"
-swift build -q
-swift build -q --product repobarcli
+mkdir -p "${CACHE_PATH}"
 
-log "==> swift test"
-swift test -q
+log "==> swift build"
+swift build -q --cache-path "${CACHE_PATH}"
+swift build -q --product repobarcli --cache-path "${CACHE_PATH}"
 
 log "==> Packaging debug app bundle"
 DEFAULT_IDENTITY="${CODE_SIGN_IDENTITY:-${CODESIGN_IDENTITY:-}}"
