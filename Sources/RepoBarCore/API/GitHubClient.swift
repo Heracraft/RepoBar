@@ -761,6 +761,18 @@ public actor GitHubClient {
         return try Self.decodeRecentIssues(from: data)
     }
 
+    public func recentReleases(owner: String, name: String, limit: Int = 20) async throws -> [RepoReleaseSummary] {
+        let token = try await validAccessToken()
+        let limit = max(1, min(limit, 100))
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/releases"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [URLQueryItem(name: "per_page", value: "\(limit)")]
+        let (data, _) = try await authorizedGet(url: components.url!, token: token)
+        return try Self.decodeRecentReleases(from: data)
+    }
+
     /// Most recent release (including prereleases) ordered by creation date; skips drafts.
     /// Returns `nil` if the repository has no releases.
     private func latestReleaseAny(owner: String, name: String) async throws -> Release? {
@@ -814,6 +826,31 @@ public actor GitHubClient {
                     authorAvatarURL: $0.user?.avatarUrl,
                     commentCount: $0.comments,
                     labels: $0.labels.map { RepoIssueLabel(name: $0.name, colorHex: $0.color) }
+                )
+            }
+    }
+
+    static func decodeRecentReleases(from data: Data) throws -> [RepoReleaseSummary] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let responses = try decoder.decode([ReleaseRecentResponse].self, from: data)
+        return responses
+            .filter { $0.draft != true }
+            .map {
+                let title = ($0.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let published = $0.publishedAt ?? $0.createdAt ?? Date.distantPast
+                let assets = $0.assets ?? []
+                let downloads = assets.reduce(0) { $0 + ($1.downloadCount ?? 0) }
+                return RepoReleaseSummary(
+                    name: title.isEmpty ? $0.tagName : title,
+                    tag: $0.tagName,
+                    url: $0.htmlUrl,
+                    publishedAt: published,
+                    isPrerelease: $0.prerelease ?? false,
+                    authorLogin: $0.author?.login,
+                    authorAvatarURL: $0.author?.avatarUrl,
+                    assetCount: assets.count,
+                    downloadCount: downloads
                 )
             }
     }
@@ -874,6 +911,34 @@ public actor GitHubClient {
         enum CodingKeys: String, CodingKey {
             case login
             case avatarUrl = "avatar_url"
+        }
+    }
+
+    private struct ReleaseRecentResponse: Decodable {
+        let name: String?
+        let tagName: String
+        let publishedAt: Date?
+        let createdAt: Date?
+        let draft: Bool?
+        let prerelease: Bool?
+        let htmlUrl: URL
+        let author: RecentUser?
+        let assets: [ReleaseAsset]?
+
+        enum CodingKeys: String, CodingKey {
+            case name, draft, prerelease, author, assets
+            case tagName = "tag_name"
+            case publishedAt = "published_at"
+            case createdAt = "created_at"
+            case htmlUrl = "html_url"
+        }
+
+        struct ReleaseAsset: Decodable {
+            let downloadCount: Int?
+
+            enum CodingKeys: String, CodingKey {
+                case downloadCount = "download_count"
+            }
         }
     }
 

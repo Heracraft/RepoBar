@@ -14,6 +14,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     private let recentListCacheTTL: TimeInterval = 90
     private let recentIssuesCache = RecentListCache<RepoIssueSummary>()
     private let recentPullRequestsCache = RecentListCache<RepoPullRequestSummary>()
+    private let recentReleasesCache = RecentListCache<RepoReleaseSummary>()
 
     init(appState: AppState) {
         self.appState = appState
@@ -302,6 +303,49 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
             }
             menu.update()
+        case .releases:
+            let header = RecentMenuHeader(
+                title: "Open Releases",
+                action: #selector(self.openReleases),
+                fullName: context.fullName,
+                systemImage: "tag"
+            )
+            let hasLatestRelease = self.appState.session.repositories
+                .first(where: { $0.fullName == context.fullName })?
+                .latestRelease != nil
+            let actions = hasLatestRelease
+                ? [
+                    RecentMenuAction(
+                        title: "Open Latest Release",
+                        action: #selector(self.openLatestRelease),
+                        systemImage: "tag.fill",
+                        representedObject: context.fullName,
+                        isEnabled: true
+                    )
+                ]
+                : []
+
+            let cached = self.recentReleasesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
+            if let cached {
+                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(cached))
+            } else {
+                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .loading)
+            }
+            menu.update()
+
+            guard self.recentReleasesCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
+            let task = self.recentReleasesCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
+                try await github.recentReleases(owner: owner, name: name, limit: recentListLimit)
+            }
+            defer { self.recentReleasesCache.clearInflight(for: context.fullName) }
+            do {
+                let items = try await task.value
+                self.recentReleasesCache.store(items, for: context.fullName, fetchedAt: Date())
+                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(items))
+            } catch {
+                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .message("Failed to load"))
+            }
+            menu.update()
         }
     }
 
@@ -311,6 +355,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         case message(String)
         case issues([RepoIssueSummary])
         case pullRequests([RepoPullRequestSummary])
+        case releases([RepoReleaseSummary])
     }
 
     private struct RecentMenuHeader {
@@ -320,21 +365,45 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let systemImage: String?
     }
 
-    private func populateRecentListMenu(_ menu: NSMenu, header: RecentMenuHeader, rows: RecentMenuRows) {
+    private struct RecentMenuAction {
+        let title: String
+        let action: Selector
+        let systemImage: String?
+        let representedObject: Any
+        let isEnabled: Bool
+    }
+
+    private func populateRecentListMenu(
+        _ menu: NSMenu,
+        header: RecentMenuHeader,
+        actions: [RecentMenuAction] = [],
+        rows: RecentMenuRows
+    ) {
         menu.removeAllItems()
 
         let open = NSMenuItem(title: header.title, action: header.action, keyEquivalent: "")
         open.target = self
         open.representedObject = header.fullName
-        if let systemImage = header.systemImage,
-           let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil)
-        {
+        if let systemImage = header.systemImage, let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil) {
             image.size = NSSize(width: 14, height: 14)
             image.isTemplate = true
             open.image = image
         }
         open.isEnabled = header.action != nil
         menu.addItem(open)
+
+        for action in actions {
+            let item = NSMenuItem(title: action.title, action: action.action, keyEquivalent: "")
+            item.target = self
+            item.representedObject = action.representedObject
+            item.isEnabled = action.isEnabled
+            if let systemImage = action.systemImage, let image = NSImage(systemSymbolName: systemImage, accessibilityDescription: nil) {
+                image.size = NSSize(width: 14, height: 14)
+                image.isTemplate = true
+                item.image = image
+            }
+            menu.addItem(item)
+        }
 
         menu.addItem(.separator())
 
@@ -373,6 +442,17 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 self.addPullRequestMenuItem(pr, to: menu)
             }
             self.menuBuilder.refreshMenuViewHeights(in: menu)
+        case let .releases(items):
+            if items.isEmpty {
+                let item = NSMenuItem(title: "No releases", action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                menu.addItem(item)
+                return
+            }
+            for release in items.prefix(self.recentListLimit) {
+                self.addReleaseMenuItem(release, to: menu)
+            }
+            self.menuBuilder.refreshMenuViewHeights(in: menu)
         }
     }
 
@@ -407,6 +487,21 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             author: pullRequest.authorLogin,
             updatedAt: pullRequest.updatedAt
         )
+        menu.addItem(item)
+    }
+
+    private func addReleaseMenuItem(_ release: RepoReleaseSummary, to menu: NSMenu) {
+        let highlightState = MenuItemHighlightState()
+        let view = MenuItemContainerView(highlightState: highlightState, showsSubmenuIndicator: false) {
+            ReleaseMenuItemView(release: release) { [weak self] in
+                self?.open(url: release.url)
+            }
+        }
+
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.isEnabled = true
+        item.view = MenuItemHostingView(rootView: AnyView(view), highlightState: highlightState)
+        item.toolTip = self.recentItemTooltip(title: release.name, author: release.authorLogin, updatedAt: release.publishedAt)
         menu.addItem(item)
     }
 

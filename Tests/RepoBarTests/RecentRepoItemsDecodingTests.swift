@@ -75,4 +75,42 @@ struct RecentRepoItemsDecodingTests {
         #expect(items.first?.headRefName == "feature/menu-rows")
         #expect(items.first?.baseRefName == "main")
     }
+
+    @Test
+    func releasesEndpointSkipsDraftAndAggregatesAssets() throws {
+        let json = """
+        [
+          {
+            "name": "v1.2.3",
+            "tag_name": "v1.2.3",
+            "html_url": "https://github.com/acme/widget/releases/tag/v1.2.3",
+            "published_at": "2025-12-28T10:00:00Z",
+            "created_at": "2025-12-28T09:50:00Z",
+            "draft": false,
+            "prerelease": true,
+            "author": { "login": "alice", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4" },
+            "assets": [
+              { "download_count": 10 },
+              { "download_count": 5 }
+            ]
+          },
+          {
+            "name": "Draft release",
+            "tag_name": "v1.2.4",
+            "html_url": "https://github.com/acme/widget/releases/tag/v1.2.4",
+            "draft": true
+          }
+        ]
+        """
+
+        let items = try GitHubClient.decodeRecentReleases(from: Data(json.utf8))
+        #expect(items.count == 1)
+        #expect(items.first?.tag == "v1.2.3")
+        #expect(items.first?.name == "v1.2.3")
+        #expect(items.first?.isPrerelease == true)
+        #expect(items.first?.authorLogin == "alice")
+        #expect(items.first?.authorAvatarURL != nil)
+        #expect(items.first?.assetCount == 2)
+        #expect(items.first?.downloadCount == 15)
+    }
 }

@@ -83,3 +83,37 @@ public struct RepoPullRequestSummary: Sendable, Hashable {
         self.baseRefName = baseRefName
     }
 }
+
+public struct RepoReleaseSummary: Sendable, Hashable {
+    public let name: String
+    public let tag: String
+    public let url: URL
+    public let publishedAt: Date
+    public let isPrerelease: Bool
+    public let authorLogin: String?
+    public let authorAvatarURL: URL?
+    public let assetCount: Int
+    public let downloadCount: Int
+
+    public init(
+        name: String,
+        tag: String,
+        url: URL,
+        publishedAt: Date,
+        isPrerelease: Bool,
+        authorLogin: String?,
+        authorAvatarURL: URL?,
+        assetCount: Int,
+        downloadCount: Int
+    ) {
+        self.name = name
+        self.tag = tag
+        self.url = url
+        self.publishedAt = publishedAt
+        self.isPrerelease = isPrerelease
+        self.authorLogin = authorLogin
+        self.authorAvatarURL = authorAvatarURL
+        self.assetCount = assetCount
+        self.downloadCount = downloadCount
+    }
+}

@@ -165,6 +165,14 @@ final class StatusBarMenuBuilder {
             openTitle: "Open Pull Requests",
             openAction: #selector(self.target.openPulls)
         ))
+        menu.addItem(self.recentListSubmenuItem(
+            title: "Releases",
+            systemImage: "tag",
+            fullName: repo.title,
+            kind: .releases,
+            openTitle: "Open Releases",
+            openAction: #selector(self.target.openReleases)
+        ))
 
         menu.addItem(self.actionItem(
             title: "Open Actions",
@@ -172,20 +180,6 @@ final class StatusBarMenuBuilder {
             represented: repo.title,
             systemImage: "bolt"
         ))
-        menu.addItem(self.actionItem(
-            title: "Open Releases",
-            action: #selector(self.target.openReleases),
-            represented: repo.title,
-            systemImage: "tag"
-        ))
-        if repo.source.latestRelease != nil {
-            menu.addItem(self.actionItem(
-                title: "Open Latest Release",
-                action: #selector(self.target.openLatestRelease),
-                represented: repo.title,
-                systemImage: "tag.fill"
-            ))
-        }
         if repo.activityURL != nil {
             menu.addItem(self.actionItem(
                 title: "Open Latest Activity",
