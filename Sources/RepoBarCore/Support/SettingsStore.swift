@@ -24,16 +24,6 @@ public struct SettingsStore {
             }
             return settings
         }
-        if let legacyEnvelope = try? decoder.decode(LegacySettingsEnvelope.self, from: data) {
-            let settings = Self.migrateLegacySettings(from: legacyEnvelope.settings)
-            save(settings)
-            return settings
-        }
-        if let legacy = try? decoder.decode(LegacyUserSettings.self, from: data) {
-            let settings = Self.migrateLegacySettings(from: legacy)
-            save(settings)
-            return settings
-        }
         return UserSettings()
     }
 
@@ -47,65 +37,9 @@ public struct SettingsStore {
     private static func applyMigrations(to settings: inout UserSettings, fromVersion: Int) {
         guard fromVersion < currentVersion else { return }
     }
-
-    private static func migrateLegacySettings(from legacy: LegacyUserSettings) -> UserSettings {
-        var settings = UserSettings()
-        settings.appearance.showContributionHeader = legacy.showContributionHeader ?? settings.appearance.showContributionHeader
-        settings.repoList.displayLimit = legacy.repoDisplayLimit ?? settings.repoList.displayLimit
-        settings.repoList.showForks = legacy.showForks ?? settings.repoList.showForks
-        settings.repoList.showArchived = legacy.showArchived ?? settings.repoList.showArchived
-        settings.refreshInterval = legacy.refreshInterval ?? settings.refreshInterval
-        settings.launchAtLogin = legacy.launchAtLogin ?? settings.launchAtLogin
-        settings.heatmap.span = legacy.heatmapSpan ?? settings.heatmap.span
-        settings.appearance.cardDensity = legacy.cardDensity ?? settings.appearance.cardDensity
-        settings.appearance.accentTone = legacy.accentTone ?? settings.appearance.accentTone
-        settings.repoList.menuSortKey = legacy.menuSortKey ?? settings.repoList.menuSortKey
-        settings.debugPaneEnabled = legacy.debugPaneEnabled ?? settings.debugPaneEnabled
-        settings.diagnosticsEnabled = legacy.diagnosticsEnabled ?? settings.diagnosticsEnabled
-        settings.githubHost = legacy.githubHost ?? settings.githubHost
-        settings.enterpriseHost = legacy.enterpriseHost ?? settings.enterpriseHost
-        settings.loopbackPort = legacy.loopbackPort ?? settings.loopbackPort
-        settings.repoList.pinnedRepositories = legacy.pinnedRepositories ?? settings.repoList.pinnedRepositories
-        settings.repoList.hiddenRepositories = legacy.hiddenRepositories ?? settings.repoList.hiddenRepositories
-
-        if let showHeatmap = legacy.showHeatmap {
-            settings.heatmap.display = showHeatmap ? .inline : .submenu
-        } else if let heatmapDisplay = legacy.heatmapDisplay {
-            settings.heatmap.display = heatmapDisplay
-        }
-
-        return settings
-    }
 }
 
 private struct SettingsEnvelope: Codable {
     let version: Int
     let settings: UserSettings
-}
-
-private struct LegacySettingsEnvelope: Codable {
-    let version: Int
-    let settings: LegacyUserSettings
-}
-
-private struct LegacyUserSettings: Codable {
-    var showContributionHeader: Bool?
-    var repoDisplayLimit: Int?
-    var showForks: Bool?
-    var showArchived: Bool?
-    var refreshInterval: RefreshInterval?
-    var launchAtLogin: Bool?
-    var heatmapDisplay: HeatmapDisplay?
-    var heatmapSpan: HeatmapSpan?
-    var cardDensity: CardDensity?
-    var accentTone: AccentTone?
-    var menuSortKey: RepositorySortKey?
-    var debugPaneEnabled: Bool?
-    var diagnosticsEnabled: Bool?
-    var githubHost: URL?
-    var enterpriseHost: URL?
-    var loopbackPort: Int?
-    var pinnedRepositories: [String]?
-    var hiddenRepositories: [String]?
-    var showHeatmap: Bool?
 }

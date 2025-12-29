@@ -119,7 +119,8 @@ final class AppState {
         {
             return
         }
-        self.requestRefresh(cancelInFlight: true)
+        if self.refreshTask != nil { return }
+        self.requestRefresh(cancelInFlight: false)
     }
 
     func requestRefresh(cancelInFlight: Bool = false) {
