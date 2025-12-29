@@ -56,7 +56,8 @@ struct CLIOutputTests {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let date = calendar.date(from: DateComponents(year: 2025, month: 12, day: 26, hour: 23, minute: 59))!
-        #expect(formatDateYYYYMMDD(date) == "2025-12-26")
+        let now = calendar.date(byAdding: .day, value: 10, to: date)!
+        #expect(ReleaseFormatter.releasedLabel(for: date, now: now) == "2025-12-26")
     }
 
     @Test
@@ -83,19 +84,21 @@ struct CLIOutputTests {
         )
         let row = RepoRow(repo: repo, activityDate: nil, activityLabel: "-", activityLine: "push")
 
+        let now = Date(timeIntervalSinceReferenceDate: 99999)
         let withRelease = tableLines(
             [row],
             useColor: false,
             includeURL: false,
             includeRelease: true,
             includeEvent: false,
-            baseHost: baseHost
+            baseHost: baseHost,
+            now: now
         )
         .joined(separator: "\n")
         #expect(withRelease.contains("REL"))
         #expect(withRelease.contains("RELEASED"))
         #expect(withRelease.contains("v1.0.0"))
-        #expect(withRelease.contains(formatDateYYYYMMDD(releaseDate)))
+        #expect(withRelease.contains(ReleaseFormatter.releasedLabel(for: releaseDate, now: now)))
 
         let withoutRelease = tableLines(
             [row],
@@ -103,7 +106,8 @@ struct CLIOutputTests {
             includeURL: false,
             includeRelease: false,
             includeEvent: false,
-            baseHost: baseHost
+            baseHost: baseHost,
+            now: now
         )
         .joined(separator: "\n")
         #expect(withoutRelease.contains("REL") == false)
@@ -225,8 +229,16 @@ struct CLIOutputTests {
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
         let older = calendar.date(byAdding: .day, value: -6, to: now)!
 
-        #expect(formatReleasedLabel(today, now: now) == "today")
-        #expect(formatReleasedLabel(yesterday, now: now) == "yesterday")
-        #expect(formatReleasedLabel(older, now: now) == formatDateYYYYMMDD(older))
+        #expect(ReleaseFormatter.releasedLabel(for: today, now: now) == "today")
+        #expect(ReleaseFormatter.releasedLabel(for: yesterday, now: now) == "yesterday")
+        #expect(ReleaseFormatter.releasedLabel(for: older, now: now) == Self.dateLabel(for: older))
+    }
+
+    private static func dateLabel(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
