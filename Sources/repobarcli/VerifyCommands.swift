@@ -111,8 +111,8 @@ struct RepoCommand: CommanderRunnableCommand {
                 fullName: repo.fullName,
                 ciStatus: repo.ciStatus.description,
                 ciRunCount: repo.ciRunCount,
-                issues: repo.openIssues,
-                pulls: repo.openPulls,
+                issues: repo.stats.openIssues,
+                pulls: repo.stats.openPulls,
                 latestRelease: self.includeRelease ? repo.latestRelease : nil,
                 traffic: self.includeTraffic ? repo.traffic : nil,
                 heatmap: self.includeHeatmap ? repo.heatmap : nil,
@@ -127,8 +127,8 @@ struct RepoCommand: CommanderRunnableCommand {
         let ciSuffix = repo.ciRunCount.map { " (\($0))" } ?? ""
         print("Repository: \(repo.fullName)")
         print("CI: \(repo.ciStatus.description)\(ciSuffix)")
-        print("Issues: \(repo.openIssues)")
-        print("PRs: \(repo.openPulls)")
+        print("Issues: \(repo.stats.openIssues)")
+        print("PRs: \(repo.stats.openPulls)")
 
         if self.includeRelease {
             if let release = repo.latestRelease {

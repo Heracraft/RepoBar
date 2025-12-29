@@ -42,13 +42,13 @@ public enum RepositorySort {
             if leftDate != rightDate { return leftDate > rightDate }
             return nil
         case .issues:
-            if lhs.openIssues != rhs.openIssues { return lhs.openIssues > rhs.openIssues }
+            if lhs.stats.openIssues != rhs.stats.openIssues { return lhs.stats.openIssues > rhs.stats.openIssues }
             return nil
         case .pulls:
-            if lhs.openPulls != rhs.openPulls { return lhs.openPulls > rhs.openPulls }
+            if lhs.stats.openPulls != rhs.stats.openPulls { return lhs.stats.openPulls > rhs.stats.openPulls }
             return nil
         case .stars:
-            if lhs.stars != rhs.stars { return lhs.stars > rhs.stars }
+            if lhs.stats.stars != rhs.stats.stars { return lhs.stats.stars > rhs.stats.stars }
             return nil
         case .name:
             let order = lhs.fullName.localizedCaseInsensitiveCompare(rhs.fullName)

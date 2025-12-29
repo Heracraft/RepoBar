@@ -32,7 +32,7 @@ struct AddRepoView: View {
                         if let release = repo.latestRelease {
                             Text("Latest: \(release.name)").font(.caption)
                         } else {
-                            Text("Issues: \(repo.openIssues) • Owner: \(repo.owner)")
+                            Text("Issues: \(repo.stats.openIssues) • Owner: \(repo.owner)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

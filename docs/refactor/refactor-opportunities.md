@@ -106,7 +106,7 @@ Last updated: 2025-12-28
 - Add `ActivityMetadata` (actor, action, target, url).
 - Derived fields for label + deep link.
 
-### [ ] 15) Repo stats value type
+### [x] 15) Repo stats value type
 - Create `RepositoryStats` to hold issues/PRs/stars/forks/push age.
 - Used by both CLI and UI.
 

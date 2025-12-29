@@ -14,8 +14,8 @@ public struct RepositoryOnlyWith: Sendable, Equatable {
     public var isActive: Bool { self.requireIssues || self.requirePRs }
 
     public func matches(_ repo: Repository) -> Bool {
-        let hasIssues = repo.openIssues > 0
-        let hasPRs = repo.openPulls > 0
+        let hasIssues = repo.stats.openIssues > 0
+        let hasPRs = repo.stats.openPulls > 0
 
         var ok = false
         if self.requireIssues { ok = ok || hasIssues }

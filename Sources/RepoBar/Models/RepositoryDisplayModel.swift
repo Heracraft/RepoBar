@@ -38,12 +38,12 @@ struct RepositoryDisplayModel: Identifiable, Equatable {
         self.title = repo.fullName
         self.ciStatus = repo.ciStatus
         self.ciRunCount = repo.ciRunCount
-        self.issues = repo.openIssues
-        self.pulls = repo.openPulls
+        self.issues = repo.stats.openIssues
+        self.pulls = repo.stats.openPulls
         self.trafficVisitors = repo.traffic?.uniqueVisitors
         self.trafficCloners = repo.traffic?.uniqueCloners
-        self.stars = repo.stars
-        self.forks = repo.forks
+        self.stars = repo.stats.stars
+        self.forks = repo.stats.forks
         self.heatmap = repo.heatmap
         self.sortOrder = repo.sortOrder
         self.error = repo.error
@@ -56,7 +56,7 @@ struct RepositoryDisplayModel: Identifiable, Equatable {
             self.releaseLine = nil
         }
 
-        if let pushedAt = repo.pushedAt {
+        if let pushedAt = repo.stats.pushedAt {
             self.lastPushAge = RelativeFormatter.string(from: pushedAt, relativeTo: now)
         } else {
             self.lastPushAge = nil
@@ -76,10 +76,10 @@ struct RepositoryDisplayModel: Identifiable, Equatable {
         }
 
         self.stats = [
-            Stat(id: "issues", label: "Issues", value: repo.openIssues, systemImage: "exclamationmark.circle"),
-            Stat(id: "prs", label: "PRs", value: repo.openPulls, systemImage: "arrow.triangle.branch"),
-            Stat(id: "stars", label: nil, value: repo.stars, systemImage: "star"),
-            Stat(id: "forks", label: "Forks", value: repo.forks, systemImage: "tuningfork"),
+            Stat(id: "issues", label: "Issues", value: repo.stats.openIssues, systemImage: "exclamationmark.circle"),
+            Stat(id: "prs", label: "PRs", value: repo.stats.openPulls, systemImage: "arrow.triangle.branch"),
+            Stat(id: "stars", label: nil, value: repo.stats.stars, systemImage: "star"),
+            Stat(id: "forks", label: "Forks", value: repo.stats.forks, systemImage: "tuningfork"),
         ]
     }
 }

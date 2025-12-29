@@ -11,11 +11,7 @@ public struct Repository: Identifiable, Equatable, Sendable {
     public var rateLimitedUntil: Date?
     public var ciStatus: CIStatus
     public var ciRunCount: Int?
-    public var openIssues: Int
-    public var openPulls: Int
-    public var stars: Int
-    public var forks: Int
-    public var pushedAt: Date?
+    public var stats: RepositoryStats
     public var latestRelease: Release?
     public var latestActivity: ActivityEvent?
     public var activityEvents: [ActivityEvent]
@@ -56,11 +52,13 @@ public struct Repository: Identifiable, Equatable, Sendable {
         self.rateLimitedUntil = rateLimitedUntil
         self.ciStatus = ciStatus
         self.ciRunCount = ciRunCount
-        self.openIssues = openIssues
-        self.openPulls = openPulls
-        self.stars = stars
-        self.forks = forks
-        self.pushedAt = pushedAt
+        self.stats = RepositoryStats(
+            openIssues: openIssues,
+            openPulls: openPulls,
+            stars: stars,
+            forks: forks,
+            pushedAt: pushedAt
+        )
         self.latestRelease = latestRelease
         self.latestActivity = latestActivity
         self.activityEvents = activityEvents
@@ -83,11 +81,11 @@ public struct Repository: Identifiable, Equatable, Sendable {
             rateLimitedUntil: self.rateLimitedUntil,
             ciStatus: self.ciStatus,
             ciRunCount: self.ciRunCount,
-            openIssues: self.openIssues,
-            openPulls: self.openPulls,
-            stars: self.stars,
-            forks: self.forks,
-            pushedAt: self.pushedAt,
+            openIssues: self.stats.openIssues,
+            openPulls: self.stats.openPulls,
+            stars: self.stats.stars,
+            forks: self.stats.forks,
+            pushedAt: self.stats.pushedAt,
             latestRelease: self.latestRelease,
             latestActivity: self.latestActivity,
             activityEvents: self.activityEvents,
@@ -95,6 +93,31 @@ public struct Repository: Identifiable, Equatable, Sendable {
             heatmap: self.heatmap,
             detailCacheState: self.detailCacheState
         )
+    }
+
+    public var openIssues: Int {
+        get { self.stats.openIssues }
+        set { self.stats.openIssues = newValue }
+    }
+
+    public var openPulls: Int {
+        get { self.stats.openPulls }
+        set { self.stats.openPulls = newValue }
+    }
+
+    public var stars: Int {
+        get { self.stats.stars }
+        set { self.stats.stars = newValue }
+    }
+
+    public var forks: Int {
+        get { self.stats.forks }
+        set { self.stats.forks = newValue }
+    }
+
+    public var pushedAt: Date? {
+        get { self.stats.pushedAt }
+        set { self.stats.pushedAt = newValue }
     }
 }
 

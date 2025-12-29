@@ -11,7 +11,7 @@ public extension Repository {
     /// Returns the most recent activity date between latest activity and last push.
     var activityDate: Date? {
         let activityDate = (self.latestActivity ?? self.activityEvents.first)?.date
-        switch (activityDate, self.pushedAt) {
+        switch (activityDate, self.stats.pushedAt) {
         case let (left?, right?):
             return max(left, right)
         case let (left?, nil):
@@ -25,7 +25,7 @@ public extension Repository {
 
     func activityLine(fallbackToPush: Bool) -> String? {
         if let line = self.activityLine { return line }
-        if fallbackToPush, self.pushedAt != nil { return "push" }
+        if fallbackToPush, self.stats.pushedAt != nil { return "push" }
         return nil
     }
 }

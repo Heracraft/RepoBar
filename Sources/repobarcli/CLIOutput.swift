@@ -82,9 +82,9 @@ func tableLines(
     let releasedHeader = "RELEASED"
     let repoHeader = "REPO"
 
-    let issuesWidth = max(issuesHeader.count, rows.map { String($0.repo.openIssues).count }.max() ?? 1)
-    let pullsWidth = max(pullsHeader.count, rows.map { String($0.repo.openPulls).count }.max() ?? 1)
-    let starsWidth = max(starsHeader.count, rows.map { String($0.repo.stars).count }.max() ?? 1)
+    let issuesWidth = max(issuesHeader.count, rows.map { String($0.repo.stats.openIssues).count }.max() ?? 1)
+    let pullsWidth = max(pullsHeader.count, rows.map { String($0.repo.stats.openPulls).count }.max() ?? 1)
+    let starsWidth = max(starsHeader.count, rows.map { String($0.repo.stats.stars).count }.max() ?? 1)
     let activityWidth = max(activityHeader.count, rows.map(\.activityLabel.count).max() ?? 1)
     let eventWidth = max(eventHeader.count, rows.map(\.activityLine.count).max() ?? 1)
     let releaseWidth = max(releaseHeader.count, rows.map { $0.repo.latestRelease?.tag.count ?? 1 }.max() ?? 1)
@@ -114,9 +114,9 @@ func tableLines(
     lines.append(useColor ? Ansi.bold.wrap(header) : header)
 
     for row in rows {
-        let issues = padLeft(String(row.repo.openIssues), to: issuesWidth)
-        let pulls = padLeft(String(row.repo.openPulls), to: pullsWidth)
-        let stars = padLeft(String(row.repo.stars), to: starsWidth)
+        let issues = padLeft(String(row.repo.stats.openIssues), to: issuesWidth)
+        let pulls = padLeft(String(row.repo.stats.openPulls), to: pullsWidth)
+        let stars = padLeft(String(row.repo.stats.stars), to: starsWidth)
         let activity = padRight(row.activityLabel, to: activityWidth)
         let event = padRight(row.activityLine.singleLine, to: eventWidth)
         let rel = padRight(row.repo.latestRelease?.tag ?? "-", to: releaseWidth)
@@ -131,9 +131,9 @@ func tableLines(
         )
 
         let coloredActivity = useColor ? Ansi.gray.wrap(activity) : activity
-        let coloredIssues = useColor ? (row.repo.openIssues > 0 ? Ansi.red.wrap(issues) : Ansi.gray.wrap(issues)) : issues
-        let coloredPulls = useColor ? (row.repo.openPulls > 0 ? Ansi.magenta.wrap(pulls) : Ansi.gray.wrap(pulls)) : pulls
-        let coloredStars = useColor ? (row.repo.stars > 0 ? Ansi.yellow.wrap(stars) : Ansi.gray.wrap(stars)) : stars
+        let coloredIssues = useColor ? (row.repo.stats.openIssues > 0 ? Ansi.red.wrap(issues) : Ansi.gray.wrap(issues)) : issues
+        let coloredPulls = useColor ? (row.repo.stats.openPulls > 0 ? Ansi.magenta.wrap(pulls) : Ansi.gray.wrap(pulls)) : pulls
+        let coloredStars = useColor ? (row.repo.stats.stars > 0 ? Ansi.yellow.wrap(stars) : Ansi.gray.wrap(stars)) : stars
         let coloredRel = useColor ? (row.repo.latestRelease == nil ? Ansi.gray.wrap(rel) : rel) : rel
         let coloredReleased = useColor ? (row.repo.latestRelease == nil ? Ansi.gray.wrap(released) : released) : released
         let coloredRepo = useColor ? Ansi.cyan.wrap(repoLabel) : repoLabel
@@ -173,10 +173,10 @@ func renderJSONData(_ rows: [RepoRow], baseHost: URL) throws -> Data {
             owner: row.repo.owner,
             name: row.repo.name,
             repoUrl: makeRepoURL(baseHost: baseHost, repo: row.repo),
-            openIssues: row.repo.openIssues,
-            openPulls: row.repo.openPulls,
-            stars: row.repo.stars,
-            pushedAt: row.repo.pushedAt,
+            openIssues: row.repo.stats.openIssues,
+            openPulls: row.repo.stats.openPulls,
+            stars: row.repo.stats.stars,
+            pushedAt: row.repo.stats.pushedAt,
             latestRelease: row.repo.latestRelease,
             activityDate: row.activityDate,
             activityTitle: row.repo.latestActivity?.title,
