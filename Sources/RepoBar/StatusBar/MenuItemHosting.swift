@@ -108,6 +108,6 @@ final class MenuItemHostingView: NSHostingView<AnyView>, MenuItemMeasuring, Menu
         self.needsLayout = true
         self.layoutSubtreeIfNeeded()
         let size = self.fittingSize
-        return ceil(size.height)
+        return ceil(size.height) + 1
     }
 }
