@@ -8,9 +8,9 @@ struct IssueMenuItemView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        RecentItemRowView(alignment: .top, onOpen: self.onOpen) {
             self.avatar
-
+        } content: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.issue.title)
                     .font(.callout.weight(.medium))
@@ -47,12 +47,7 @@ struct IssueMenuItemView: View {
                     MenuLabelChipsView(labels: self.issue.labels)
                 }
             }
-            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture { self.onOpen() }
     }
 
     @ViewBuilder

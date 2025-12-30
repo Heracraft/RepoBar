@@ -7,11 +7,11 @@ struct BranchMenuItemView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(spacing: 8) {
+        RecentItemRowView(alignment: .center, onOpen: self.onOpen) {
             Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
                 .font(.caption)
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-
+        } content: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(self.branch.name)
@@ -32,13 +32,7 @@ struct BranchMenuItemView: View {
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     .lineLimit(1)
             }
-
-            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture { self.onOpen() }
     }
 
     private var shortSHA: String {

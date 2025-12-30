@@ -7,11 +7,11 @@ struct ReleaseAssetMenuItemView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(spacing: 8) {
+        RecentItemRowView(alignment: .center, onOpen: self.onOpen) {
             Image(systemName: "doc")
                 .font(.caption)
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-
+        } content: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.asset.name)
                     .font(.callout.weight(.medium))
@@ -32,13 +32,7 @@ struct ReleaseAssetMenuItemView: View {
                         .lineLimit(1)
                 }
             }
-
-            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture { self.onOpen() }
     }
 
     private var sizeText: String? {

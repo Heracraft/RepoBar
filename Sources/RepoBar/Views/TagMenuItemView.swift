@@ -7,11 +7,11 @@ struct TagMenuItemView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(spacing: 8) {
+        RecentItemRowView(alignment: .center, onOpen: self.onOpen) {
             Image(systemName: "tag")
                 .font(.caption)
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-
+        } content: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.tag.name)
                     .font(.callout.weight(.medium))
@@ -24,13 +24,7 @@ struct TagMenuItemView: View {
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     .lineLimit(1)
             }
-
-            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture { self.onOpen() }
     }
 
     private var shortSHA: String {

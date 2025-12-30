@@ -8,12 +8,12 @@ struct WorkflowRunMenuItemView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        RecentItemRowView(alignment: .top, onOpen: self.onOpen) {
             Circle()
                 .fill(self.statusColor)
                 .frame(width: 8, height: 8)
                 .padding(.top, 4)
-
+        } content: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.run.name)
                     .font(.callout.weight(.medium))
@@ -51,13 +51,7 @@ struct WorkflowRunMenuItemView: View {
                         .lineLimit(1)
                 }
             }
-
-            Spacer(minLength: 2)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture { self.onOpen() }
     }
 
     private var statusColor: Color {
