@@ -577,6 +577,34 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let fullName: String
     }
 
+    private struct LocalBranchMenuItemData {
+        let name: String
+        let isCurrent: Bool
+        let isDetached: Bool
+        let upstream: String?
+        let aheadCount: Int?
+        let behindCount: Int?
+        let lastCommitDate: Date?
+        let lastCommitAuthor: String?
+        let dirtySummary: String?
+        let repoPath: URL
+        let fullName: String
+    }
+
+    private struct LocalWorktreeMenuItemData {
+        let displayPath: String
+        let branch: String
+        let isCurrent: Bool
+        let upstream: String?
+        let aheadCount: Int?
+        let behindCount: Int?
+        let lastCommitDate: Date?
+        let lastCommitAuthor: String?
+        let dirtySummary: String?
+        let path: URL
+        let fullName: String
+    }
+
     func registerLocalBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String, localStatus: LocalRepoStatus) {
         self.localBranchMenus[ObjectIdentifier(menu)] = LocalGitMenuEntry(
             menu: menu,
@@ -613,7 +641,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 return
             }
             if snapshot.isDetachedHead {
-                let detached = self.makeLocalBranchMenuItem(
+                let detached = self.makeLocalBranchMenuItem(LocalBranchMenuItemData(
                     name: "Detached HEAD",
                     isCurrent: true,
                     isDetached: true,
@@ -625,12 +653,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     dirtySummary: entry.localStatus?.dirtyCounts?.summary,
                     repoPath: repoPath,
                     fullName: fullName
-                )
+                ))
                 menu.addItem(detached)
             }
             for branch in snapshot.branches {
                 let dirtySummary = branch.isCurrent ? entry.localStatus?.dirtyCounts?.summary : nil
-                let item = self.makeLocalBranchMenuItem(
+                let item = self.makeLocalBranchMenuItem(LocalBranchMenuItemData(
                     name: branch.name,
                     isCurrent: branch.isCurrent,
                     isDetached: false,
@@ -642,7 +670,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     dirtySummary: dirtySummary,
                     repoPath: repoPath,
                     fullName: fullName
-                )
+                ))
                 menu.addItem(item)
             }
             self.menuBuilder.refreshMenuViewHeights(in: menu)
@@ -675,7 +703,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             for worktree in worktrees {
                 let branch = worktree.branch ?? "Detached"
                 let displayPath = PathFormatter.displayString(worktree.path.path)
-                menu.addItem(self.makeLocalWorktreeMenuItem(
+                menu.addItem(self.makeLocalWorktreeMenuItem(LocalWorktreeMenuItemData(
                     displayPath: displayPath,
                     branch: branch,
                     isCurrent: worktree.isCurrent,
@@ -687,7 +715,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     dirtySummary: worktree.dirtyCounts?.summary,
                     path: worktree.path,
                     fullName: fullName
-                ))
+                )))
             }
             self.menuBuilder.refreshMenuViewHeights(in: menu)
             menu.update()
@@ -699,70 +727,46 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         }
     }
 
-    func makeLocalWorktreeMenuItem(
-        displayPath: String,
-        branch: String,
-        isCurrent: Bool,
-        upstream: String?,
-        aheadCount: Int?,
-        behindCount: Int?,
-        lastCommitDate: Date?,
-        lastCommitAuthor: String?,
-        dirtySummary: String?,
-        path: URL,
-        fullName: String
-    ) -> NSMenuItem {
+    func makeLocalWorktreeMenuItem(_ data: LocalWorktreeMenuItemData) -> NSMenuItem {
         let row = LocalWorktreeMenuRowView(
-            path: displayPath,
-            branch: branch,
-            isCurrent: isCurrent,
-            upstream: upstream,
-            aheadCount: aheadCount,
-            behindCount: behindCount,
-            lastCommitDate: lastCommitDate,
-            lastCommitAuthor: lastCommitAuthor,
-            dirtySummary: dirtySummary
+            path: data.displayPath,
+            branch: data.branch,
+            isCurrent: data.isCurrent,
+            upstream: data.upstream,
+            aheadCount: data.aheadCount,
+            behindCount: data.behindCount,
+            lastCommitDate: data.lastCommitDate,
+            lastCommitAuthor: data.lastCommitAuthor,
+            dirtySummary: data.dirtySummary
         )
         let item = self.menuBuilder.viewItem(for: row, enabled: true, highlightable: true)
         item.target = self
         item.action = #selector(self.switchLocalWorktree(_:))
-        item.representedObject = LocalWorktreeAction(path: path, fullName: fullName)
+        item.representedObject = LocalWorktreeAction(path: data.path, fullName: data.fullName)
         return item
     }
 
-    func makeLocalBranchMenuItem(
-        name: String,
-        isCurrent: Bool,
-        isDetached: Bool,
-        upstream: String?,
-        aheadCount: Int?,
-        behindCount: Int?,
-        lastCommitDate: Date?,
-        lastCommitAuthor: String?,
-        dirtySummary: String?,
-        repoPath: URL,
-        fullName: String
-    ) -> NSMenuItem {
+    func makeLocalBranchMenuItem(_ data: LocalBranchMenuItemData) -> NSMenuItem {
         let row = LocalBranchMenuRowView(
-            name: name,
-            isCurrent: isCurrent,
-            isDetached: isDetached,
-            upstream: upstream,
-            aheadCount: aheadCount,
-            behindCount: behindCount,
-            lastCommitDate: lastCommitDate,
-            lastCommitAuthor: lastCommitAuthor,
-            dirtySummary: dirtySummary
+            name: data.name,
+            isCurrent: data.isCurrent,
+            isDetached: data.isDetached,
+            upstream: data.upstream,
+            aheadCount: data.aheadCount,
+            behindCount: data.behindCount,
+            lastCommitDate: data.lastCommitDate,
+            lastCommitAuthor: data.lastCommitAuthor,
+            dirtySummary: data.dirtySummary
         )
         let item = self.menuBuilder.viewItem(for: row, enabled: true, highlightable: true)
         item.target = self
         item.action = #selector(self.switchLocalBranch)
         item.representedObject = LocalBranchAction(
-            repoPath: repoPath,
-            branch: name,
-            fullName: fullName
+            repoPath: data.repoPath,
+            branch: data.name,
+            fullName: data.fullName
         )
-        item.state = isCurrent ? .on : .off
+        item.state = data.isCurrent ? .on : .off
         return item
     }
 
@@ -1919,11 +1923,11 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.recentListMenus[ObjectIdentifier(menu)] = RecentListMenuEntry(menu: menu, context: context)
     }
 
-#if DEBUG
-    func setMainMenuForTesting(_ menu: NSMenu) {
-        self.mainMenu = menu
-    }
-#endif
+    #if DEBUG
+        func setMainMenuForTesting(_ menu: NSMenu) {
+            self.mainMenu = menu
+        }
+    #endif
 
     func isRecentListMenu(_ menu: NSMenu) -> Bool {
         self.recentListMenus[ObjectIdentifier(menu)] != nil
