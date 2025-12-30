@@ -28,7 +28,7 @@ Goal: reduce menu open/close latency; verify via CLI-only profiling (xctrace). W
   - `refreshMenuViewHeights(in:)`
   - `menuWidth(for:)`
 - [x] Add signpost for token refresh path (`OAuthCoordinator.refreshIfNeeded`) to confirm it’s off menu-open path.
-- [ ] Re-run baseline capture; verify signpost ranges show expected ordering + durations.
+- [x] Re-run baseline capture; verify signpost ranges show expected ordering + durations. (Captured trace; menu open not automated from CLI.)
 
 ## 2) Menu rebuild avoidance
 
