@@ -577,7 +577,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let fullName: String
     }
 
-    private struct LocalBranchMenuItemData {
+    struct LocalBranchMenuItemData {
         let name: String
         let isCurrent: Bool
         let isDetached: Bool
@@ -591,7 +591,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let fullName: String
     }
 
-    private struct LocalWorktreeMenuItemData {
+    struct LocalWorktreeMenuItemData {
         let displayPath: String
         let branch: String
         let isCurrent: Bool
@@ -727,7 +727,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         }
     }
 
-    private func makeLocalWorktreeMenuItem(_ data: LocalWorktreeMenuItemData) -> NSMenuItem {
+    func makeLocalWorktreeMenuItem(_ data: LocalWorktreeMenuItemData) -> NSMenuItem {
         let row = LocalWorktreeMenuRowView(
             path: data.displayPath,
             branch: data.branch,
@@ -746,7 +746,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         return item
     }
 
-    private func makeLocalBranchMenuItem(_ data: LocalBranchMenuItemData) -> NSMenuItem {
+    func makeLocalBranchMenuItem(_ data: LocalBranchMenuItemData) -> NSMenuItem {
         let row = LocalBranchMenuRowView(
             name: data.name,
             isCurrent: data.isCurrent,
