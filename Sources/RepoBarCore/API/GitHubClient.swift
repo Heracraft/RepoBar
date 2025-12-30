@@ -136,9 +136,9 @@ public actor GitHubClient {
                     async let activityResult: Result<ActivitySnapshot, Error> = self.capture {
                         try await self.recentActivity(owner: owner, name: name, limit: 10)
                     }
-                    let result = ActivityFetchResult(
-                        pulls: await openPullsResult,
-                        activity: await activityResult
+                    let result = await ActivityFetchResult(
+                        pulls: openPullsResult,
+                        activity: activityResult
                     )
                     return (fullName, result)
                 }

@@ -244,7 +244,7 @@ extension StatusBarMenuBuilder {
     private func repoDetailItems(for repo: RepositoryDisplayModel) -> [NSMenuItem] {
         var items: [NSMenuItem] = []
         if let error = repo.error, RepositoryErrorClassifier.isNonCriticalMenuWarning(error) {
-            items.append(self.infoItem(error))
+            items.append(self.infoMessageItem(error))
         }
         if let local = repo.localStatus {
             items.append(self.infoItem("Branch: \(local.branch)"))

@@ -63,6 +63,11 @@ extension StatusBarMenuBuilder {
         return item
     }
 
+    func infoMessageItem(_ title: String) -> NSMenuItem {
+        let view = MenuInfoTextRowView(text: title, lineLimit: 5)
+        return self.viewItem(for: view, enabled: false)
+    }
+
     func actionItem(
         title: String,
         action: Selector,

@@ -444,6 +444,23 @@ struct ErrorBanner: View {
     }
 }
 
+struct MenuInfoTextRowView: View {
+    let text: String
+    let lineLimit: Int
+
+    var body: some View {
+        Text(self.text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(self.lineLimit)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, MenuStyle.cardHorizontalPadding)
+            .padding(.vertical, 4)
+    }
+}
+
 struct MenuRepoFiltersView: View {
     @Bindable var session: Session
 

@@ -190,7 +190,7 @@ struct RepoSubmenuSignature: Hashable {
 
     private static func digest(events: [ActivityEvent]) -> Int {
         var hasher = Hasher()
-        events.prefix(10).forEach { event in
+        for event in events.prefix(10) {
             hasher.combine(event.title)
             hasher.combine(event.actor)
             hasher.combine(event.date.timeIntervalSinceReferenceDate)

@@ -162,7 +162,6 @@ final class StatusBarMenuBuilder {
         menu.addItem(self.actionItem(title: "Quit RepoBar", action: #selector(self.target.quitApp), keyEquivalent: "q"))
     }
 
-
     func refreshMenuViewHeights(in menu: NSMenu) {
         let signpost = self.signposter.beginInterval("refreshMenuViewHeights")
         defer { self.signposter.endInterval("refreshMenuViewHeights", signpost) }
