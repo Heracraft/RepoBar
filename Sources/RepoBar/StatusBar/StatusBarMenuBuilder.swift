@@ -331,7 +331,10 @@ final class StatusBarMenuBuilder {
     }
 
     func refreshMenuViewHeights(in menu: NSMenu) {
-        let width = self.menuWidth(for: menu)
+        self.refreshMenuViewHeights(in: menu, width: self.menuWidth(for: menu))
+    }
+
+    func refreshMenuViewHeights(in menu: NSMenu, width: CGFloat) {
         for item in menu.items {
             guard let view = item.view,
                   let measuring = view as? MenuItemMeasuring else { continue }
@@ -346,7 +349,7 @@ final class StatusBarMenuBuilder {
         }
     }
 
-    private func menuWidth(for menu: NSMenu) -> CGFloat {
+    func menuWidth(for menu: NSMenu) -> CGFloat {
         if let view = menu.items.compactMap(\.view).first,
            let contentWidth = view.window?.contentView?.bounds.width,
            contentWidth > 0 {

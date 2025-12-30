@@ -10,6 +10,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     private lazy var menuBuilder = StatusBarMenuBuilder(appState: self.appState, target: self)
     private var recentListMenuContexts: [ObjectIdentifier: RepoRecentMenuContext] = [:]
     private weak var menuResizeWindow: NSWindow?
+    private var lastMainMenuWidth: CGFloat?
 
     private let recentListLimit = 20
     private let recentListCacheTTL: TimeInterval = 90
@@ -207,15 +208,25 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             }
             self.appState.refreshIfNeededForMenu()
             self.menuBuilder.populateMainMenu(menu)
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
+            if let cachedWidth = self.lastMainMenuWidth {
+                self.menuBuilder.refreshMenuViewHeights(in: menu, width: cachedWidth)
+            } else {
+                self.menuBuilder.refreshMenuViewHeights(in: menu)
+            }
 
             let repoFullNames = Set(menu.items.compactMap { $0.representedObject as? String }.filter { $0.contains("/") })
             self.prefetchRecentLists(fullNames: repoFullNames)
 
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                self.menuBuilder.refreshMenuViewHeights(in: menu)
-                menu.update()
+                let measuredWidth = self.menuBuilder.menuWidth(for: menu)
+                let priorWidth = self.lastMainMenuWidth
+                let shouldRemeasure = priorWidth == nil || abs(measuredWidth - (priorWidth ?? 0)) > 0.5
+                self.lastMainMenuWidth = measuredWidth
+                if shouldRemeasure {
+                    self.menuBuilder.refreshMenuViewHeights(in: menu, width: measuredWidth)
+                    menu.update()
+                }
                 self.menuBuilder.clearHighlights(in: menu)
                 self.startObservingMenuResize(for: menu)
             }
@@ -261,7 +272,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     @objc private func menuWindowDidResize(_: Notification) {
         guard let menu = self.mainMenu else { return }
-        self.menuBuilder.refreshMenuViewHeights(in: menu)
+        let width = self.menuBuilder.menuWidth(for: menu)
+        self.lastMainMenuWidth = width
+        self.menuBuilder.refreshMenuViewHeights(in: menu, width: width)
         menu.update()
     }
 
