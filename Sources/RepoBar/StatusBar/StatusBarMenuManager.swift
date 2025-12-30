@@ -468,7 +468,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         }
         if menu === self.mainMenu {
             let plan = self.menuBuilder.mainMenuPlan()
-            self.recentListMenus.removeAll(keepingCapacity: true)
+            self.pruneRecentListMenus()
             self.pruneLocalGitMenus()
             if self.appState.session.settings.appearance.showContributionHeader {
                 if case let .loggedIn(user) = self.appState.session.account {
@@ -1810,6 +1810,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     func registerRecentListMenu(_ menu: NSMenu, context: RepoRecentMenuContext) {
         self.recentListMenus[ObjectIdentifier(menu)] = RecentListMenuEntry(menu: menu, context: context)
+    }
+
+    func isRecentListMenu(_ menu: NSMenu) -> Bool {
+        self.recentListMenus[ObjectIdentifier(menu)] != nil
     }
 
     func cachedRecentListCount(fullName: String, kind: RepoRecentMenuKind) -> Int? {
