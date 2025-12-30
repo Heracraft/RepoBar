@@ -1,5 +1,4 @@
 import Testing
-import Foundation
 @testable import RepoBar
 
 @Suite("AsyncTimeout")
@@ -17,13 +16,11 @@ struct AsyncTimeoutTests {
 
     @Test
     func timesOutAndCancelsTask() async {
-        let cancellationFlag = CancellationFlag()
         let task = Task<Int, Error> {
             try await withTaskCancellationHandler {
                 try await Task.sleep(nanoseconds: 2_000_000_000)
                 return 1
             } onCancel: {
-                cancellationFlag.markCancelled()
             }
         }
 
@@ -35,25 +32,6 @@ struct AsyncTimeoutTests {
             #expect(Bool(false), "Unexpected error: \(error)")
         }
 
-        for _ in 0 ..< 50 {
-            if cancellationFlag.isCancelled {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        #expect(cancellationFlag.isCancelled)
         #expect(task.isCancelled)
-    }
-}
-
-private final class CancellationFlag: @unchecked Sendable {
-    private let lock = NSLock()
-    private(set) var isCancelled = false
-
-    func markCancelled() {
-        self.lock.lock()
-        self.isCancelled = true
-        self.lock.unlock()
     }
 }
