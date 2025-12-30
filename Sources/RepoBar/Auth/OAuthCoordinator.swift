@@ -9,6 +9,7 @@ final class OAuthCoordinator {
     private let tokenStore = TokenStore()
     private let tokenRefresher = OAuthTokenRefresher()
     private let logger = Logger(subsystem: "com.steipete.repobar", category: "oauth")
+    private let signposter = OSSignposter(subsystem: "com.steipete.repobar", category: "oauth")
     private var lastHost: URL = .init(string: "https://github.com")!
 
     func login(clientID: String, clientSecret: String, host: URL, loopbackPort: Int) async throws {
@@ -35,6 +36,8 @@ final class OAuthCoordinator {
     }
 
     func refreshIfNeeded() async throws -> OAuthTokens? {
+        let signpost = self.signposter.beginInterval("refreshIfNeeded")
+        defer { self.signposter.endInterval("refreshIfNeeded", signpost) }
         try await self.tokenRefresher.refreshIfNeeded(host: self.lastHost)
     }
 

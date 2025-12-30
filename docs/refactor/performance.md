@@ -27,7 +27,7 @@ Goal: reduce menu open/close latency; verify via CLI-only profiling (xctrace). W
   - `makeRepoSubmenu(for:isPinned:)`
   - `refreshMenuViewHeights(in:)`
   - `menuWidth(for:)`
-- [ ] Add signpost for token refresh path (`OAuthCoordinator.refreshIfNeeded`) to confirm it’s off menu-open path.
+- [x] Add signpost for token refresh path (`OAuthCoordinator.refreshIfNeeded`) to confirm it’s off menu-open path.
 - [ ] Re-run baseline capture; verify signpost ranges show expected ordering + durations.
 
 ## 2) Menu rebuild avoidance
