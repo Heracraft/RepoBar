@@ -12,89 +12,25 @@ struct LocalRepoStateMenuView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            self.headerRow
+            LocalRepoHeaderRow(status: self.status, isHighlighted: self.isHighlighted)
             if self.detailsLine.isEmpty == false {
-                self.detailsRow
+                LocalRepoDetailsRow(text: self.detailsLine, isHighlighted: self.isHighlighted)
             }
             if self.status.dirtyFiles.isEmpty == false {
-                self.dirtyFilesRow
+                LocalRepoDirtyFilesView(files: self.visibleDirtyFiles, isHighlighted: self.isHighlighted)
             }
-            HStack(spacing: 12) {
-                self.actionButton(
-                    title: "Sync",
-                    systemImage: "arrow.triangle.2.circlepath",
-                    enabled: self.syncEnabled,
-                    action: self.onSync
-                )
-                self.actionButton(
-                    title: "Rebase",
-                    systemImage: "arrow.triangle.branch",
-                    enabled: self.rebaseEnabled,
-                    action: self.onRebase
-                )
-                self.actionButton(
-                    title: "Reset",
-                    systemImage: "arrow.counterclockwise",
-                    enabled: self.resetEnabled,
-                    isDestructive: true,
-                    action: self.onReset
-                )
-            }
+            LocalRepoActionButtonsRow(
+                syncEnabled: self.syncEnabled,
+                rebaseEnabled: self.rebaseEnabled,
+                resetEnabled: self.resetEnabled,
+                isHighlighted: self.isHighlighted,
+                onSync: self.onSync,
+                onRebase: self.onRebase,
+                onReset: self.onReset
+            )
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
-            SubmenuIconColumnView {
-                Image(systemName: self.status.syncState.symbolName)
-                    .font(.caption2)
-                    .foregroundStyle(self.localSyncColor(for: self.status.syncState))
-            }
-            Text(self.status.branch)
-                .font(.system(size: 13, weight: .medium))
-                .lineLimit(1)
-            Text(self.status.syncDetail)
-                .font(.caption2)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-            if let worktreeName = self.status.worktreeName {
-                Text("Worktree \(worktreeName)")
-                    .font(.caption2)
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-            }
-            Spacer(minLength: 8)
-        }
-    }
-
-    private var detailsRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
-            SubmenuIconPlaceholderView(font: .caption2)
-
-            Text(self.detailsLine)
-                .font(.caption2)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    private var dirtyFilesRow: some View {
-        HStack(alignment: .top, spacing: MenuStyle.submenuIconSpacing) {
-            SubmenuIconPlaceholderView(font: .caption2)
-
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(Array(self.status.dirtyFiles.prefix(MenuStyle.submenuDirtyFileLimit)), id: \.self) { file in
-                    Text("- \(file)")
-                        .font(.caption2)
-                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
     }
 
     private var detailsLine: String {
@@ -112,6 +48,10 @@ struct LocalRepoStateMenuView: View {
         return parts.joined(separator: " · ")
     }
 
+    private var visibleDirtyFiles: [String] {
+        Array(self.status.dirtyFiles.prefix(MenuStyle.submenuDirtyFileLimit))
+    }
+
     private var syncEnabled: Bool {
         self.status.upstreamBranch != nil && self.status.isClean
     }
@@ -123,28 +63,38 @@ struct LocalRepoStateMenuView: View {
     private var resetEnabled: Bool {
         self.status.upstreamBranch != nil
     }
+}
 
-    private func actionButton(
-        title: String,
-        systemImage: String,
-        enabled: Bool,
-        isDestructive: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        LocalRepoActionButton(
-            title: title,
-            systemImage: systemImage,
-            enabled: enabled,
-            isDestructive: isDestructive,
-            isHighlighted: self.isHighlighted,
-            action: action
-        )
+private struct LocalRepoHeaderRow: View {
+    let status: LocalRepoStatus
+    let isHighlighted: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
+            SubmenuIconColumnView {
+                Image(systemName: self.status.syncState.symbolName)
+                    .font(.caption2)
+                    .foregroundStyle(self.syncColor)
+            }
+            Text(self.status.branch)
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1)
+            Text(self.status.syncDetail)
+                .font(.caption2)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+            if let worktreeName = self.status.worktreeName {
+                Text("Worktree \(worktreeName)")
+                    .font(.caption2)
+                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+            }
+            Spacer(minLength: 8)
+        }
     }
 
-    private func localSyncColor(for state: LocalSyncState) -> Color {
+    private var syncColor: Color {
         if self.isHighlighted { return MenuHighlightStyle.selectionText }
         let isLightAppearance = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua
-        switch state {
+        switch self.status.syncState {
         case .synced:
             return isLightAppearance
                 ? Color(nsColor: NSColor(srgbRed: 0.12, green: 0.55, blue: 0.24, alpha: 1))
@@ -160,6 +110,99 @@ struct LocalRepoStateMenuView: View {
         case .unknown:
             return MenuHighlightStyle.secondary(self.isHighlighted)
         }
+    }
+}
+
+private struct LocalRepoDetailsRow: View {
+    let text: String
+    let isHighlighted: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
+            SubmenuIconPlaceholderView(font: .caption2)
+
+            Text(self.text)
+                .font(.caption2)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct LocalRepoDirtyFilesView: View {
+    let files: [String]
+    let isHighlighted: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: MenuStyle.submenuIconSpacing) {
+            SubmenuIconPlaceholderView(font: .caption2)
+
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(self.files, id: \.self) { file in
+                    Text("- \(file)")
+                        .font(.caption2)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct LocalRepoActionButtonsRow: View {
+    let syncEnabled: Bool
+    let rebaseEnabled: Bool
+    let resetEnabled: Bool
+    let isHighlighted: Bool
+    let onSync: () -> Void
+    let onRebase: () -> Void
+    let onReset: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            self.actionButton(
+                title: "Sync",
+                systemImage: "arrow.triangle.2.circlepath",
+                enabled: self.syncEnabled,
+                isDestructive: false,
+                action: self.onSync
+            )
+            self.actionButton(
+                title: "Rebase",
+                systemImage: "arrow.triangle.branch",
+                enabled: self.rebaseEnabled,
+                isDestructive: false,
+                action: self.onRebase
+            )
+            self.actionButton(
+                title: "Reset",
+                systemImage: "arrow.counterclockwise",
+                enabled: self.resetEnabled,
+                isDestructive: true,
+                action: self.onReset
+            )
+        }
+    }
+
+    private func actionButton(
+        title: String,
+        systemImage: String,
+        enabled: Bool,
+        isDestructive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        LocalRepoActionButton(
+            title: title,
+            systemImage: systemImage,
+            enabled: enabled,
+            isDestructive: isDestructive,
+            isHighlighted: self.isHighlighted,
+            action: action
+        )
     }
 }
 
