@@ -25,7 +25,8 @@ struct ContributionsCommand: CommanderRunnableCommand {
     }
 
     mutating func run() async throws {
-        let (client, _, _) = try await makeAuthenticatedClient()
+        let context = try await makeAuthenticatedClient()
+        let client = context.client
         let resolvedLogin: String
 
         if let login, login.isEmpty == false {
@@ -36,8 +37,8 @@ struct ContributionsCommand: CommanderRunnableCommand {
         }
 
         let cells = try await client.userContributionHeatmap(login: resolvedLogin)
-        let total = cells.map(\.count).reduce(0, +)
-        let maxCount = cells.map(\.count).max() ?? 0
+        let total = cells.map { $0.count }.reduce(0, +)
+        let maxCount = cells.map { $0.count }.max() ?? 0
 
         if self.output.jsonOutput {
             let output = ContributionsOutput(
@@ -103,7 +104,8 @@ struct RepoCommand: CommanderRunnableCommand {
             throw ValidationError("Repository must be in owner/name format")
         }
 
-        let (client, _, _) = try await makeAuthenticatedClient()
+        let context = try await makeAuthenticatedClient()
+        let client = context.client
         let repo = try await client.fullRepository(owner: parts[0], name: parts[1])
 
         if self.output.jsonOutput {
@@ -148,7 +150,7 @@ struct RepoCommand: CommanderRunnableCommand {
         }
 
         if self.includeHeatmap {
-            let maxCount = repo.heatmap.map(\.count).max() ?? 0
+            let maxCount = repo.heatmap.map { $0.count }.max() ?? 0
             print("Heatmap days: \(repo.heatmap.count), max \(maxCount)")
         }
 
@@ -207,7 +209,9 @@ struct IssuesCommand: CommanderRunnableCommand {
             throw ValidationError("Repository must be in owner/name format")
         }
 
-        let (client, settings, _) = try await makeAuthenticatedClient()
+        let context = try await makeAuthenticatedClient()
+        let client = context.client
+        let settings = context.settings
         let issues = try await client.recentIssues(owner: parts[0], name: parts[1], limit: self.limit)
 
         if self.output.jsonOutput {
@@ -283,7 +287,9 @@ struct PullsCommand: CommanderRunnableCommand {
             throw ValidationError("Repository must be in owner/name format")
         }
 
-        let (client, settings, _) = try await makeAuthenticatedClient()
+        let context = try await makeAuthenticatedClient()
+        let client = context.client
+        let settings = context.settings
         let pulls = try await client.recentPullRequests(owner: parts[0], name: parts[1], limit: self.limit)
 
         if self.output.jsonOutput {
