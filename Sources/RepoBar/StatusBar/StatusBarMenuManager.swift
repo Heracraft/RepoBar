@@ -305,10 +305,228 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     // MARK: - Main menu
 
+    private func recentMenuDescriptor(for kind: RepoRecentMenuKind) -> RecentMenuDescriptor? {
+        self.recentMenuDescriptors()[kind]
+    }
+
+    private func recentMenuDescriptors() -> [RepoRecentMenuKind: RecentMenuDescriptor] {
+        let releaseActions: (String) -> [RecentMenuAction] = { fullName in
+            let hasLatestRelease = self.appState.session.repositories
+                .first(where: { $0.fullName == fullName })?
+                .latestRelease != nil
+            return hasLatestRelease
+                ? [
+                    RecentMenuAction(
+                        title: "Open Latest Release",
+                        action: #selector(self.openLatestRelease),
+                        systemImage: "tag.fill",
+                        representedObject: fullName,
+                        isEnabled: true
+                    )
+                ]
+                : []
+        }
+
+        let descriptors: [RecentMenuDescriptor] = [
+            self.makeDescriptor(
+                kind: .issues,
+                headerTitle: "Open Issues",
+                headerIcon: "exclamationmark.circle",
+                openAction: #selector(self.openIssues),
+                emptyTitle: "No open issues",
+                cache: self.recentIssuesCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentIssues(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for issue in items.prefix(self.recentListLimit) {
+                        self.addIssueMenuItem(issue, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .pullRequests,
+                headerTitle: "Open Pull Requests",
+                headerIcon: "arrow.triangle.branch",
+                openAction: #selector(self.openPulls),
+                emptyTitle: "No open pull requests",
+                cache: self.recentPullRequestsCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentPullRequests(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for pr in items.prefix(self.recentListLimit) {
+                        self.addPullRequestMenuItem(pr, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .releases,
+                headerTitle: "Open Releases",
+                headerIcon: "tag",
+                openAction: #selector(self.openReleases),
+                emptyTitle: "No releases",
+                cache: self.recentReleasesCache,
+                actions: releaseActions,
+                fetch: { github, owner, name, limit in
+                    try await github.recentReleases(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for release in items.prefix(self.recentListLimit) {
+                        self.addReleaseMenuItem(release, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .ciRuns,
+                headerTitle: "Open Actions",
+                headerIcon: "bolt",
+                openAction: #selector(self.openActions),
+                emptyTitle: "No CI runs",
+                cache: self.recentWorkflowRunsCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentWorkflowRuns(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for run in items.prefix(self.recentListLimit) {
+                        self.addWorkflowRunMenuItem(run, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .discussions,
+                headerTitle: "Open Discussions",
+                headerIcon: "bubble.left.and.bubble.right",
+                openAction: #selector(self.openDiscussions),
+                emptyTitle: "No discussions",
+                cache: self.recentDiscussionsCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentDiscussions(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for discussion in items.prefix(self.recentListLimit) {
+                        self.addDiscussionMenuItem(discussion, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .tags,
+                headerTitle: "Open Tags",
+                headerIcon: "tag",
+                openAction: #selector(self.openTags),
+                emptyTitle: "No tags",
+                cache: self.recentTagsCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentTags(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, fullName, items in
+                    for tag in items.prefix(self.recentListLimit) {
+                        self.addTagMenuItem(tag, repoFullName: fullName, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .branches,
+                headerTitle: "Open Branches",
+                headerIcon: "point.topleft.down.curvedto.point.bottomright.up",
+                openAction: #selector(self.openBranches),
+                emptyTitle: "No branches",
+                cache: self.recentBranchesCache,
+                fetch: { github, owner, name, limit in
+                    try await github.recentBranches(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, fullName, items in
+                    for branch in items.prefix(self.recentListLimit) {
+                        self.addBranchMenuItem(branch, repoFullName: fullName, to: menu)
+                    }
+                }
+            ),
+            self.makeDescriptor(
+                kind: .contributors,
+                headerTitle: "Open Contributors",
+                headerIcon: "person.2",
+                openAction: #selector(self.openContributors),
+                emptyTitle: "No contributors",
+                cache: self.recentContributorsCache,
+                fetch: { github, owner, name, limit in
+                    try await github.topContributors(owner: owner, name: name, limit: limit)
+                },
+                render: { menu, _, items in
+                    for contributor in items.prefix(self.recentListLimit) {
+                        self.addContributorMenuItem(contributor, to: menu)
+                    }
+                }
+            )
+        ]
+
+        return Dictionary(uniqueKeysWithValues: descriptors.map { ($0.kind, $0) })
+    }
+
+    private func makeDescriptor<Item>(
+        kind: RepoRecentMenuKind,
+        headerTitle: String,
+        headerIcon: String?,
+        openAction: Selector,
+        emptyTitle: String,
+        cache: RecentListCache<Item>,
+        actions: @escaping (String) -> [RecentMenuAction] = { _ in [] },
+        fetch: @escaping (GitHubClient, String, String, Int) async throws -> [Item],
+        render: @escaping (NSMenu, String, [Item]) -> Void
+    ) -> RecentMenuDescriptor {
+        let github = self.appState.github
+
+        func erase(_ items: [Item]) -> [Any] {
+            items.map { $0 as Any }
+        }
+
+        return RecentMenuDescriptor(
+            kind: kind,
+            headerTitle: headerTitle,
+            headerIcon: headerIcon,
+            openAction: openAction,
+            emptyTitle: emptyTitle,
+            actions: actions,
+            cached: { key, now, ttl in
+                cache.cached(for: key, now: now, maxAge: ttl).map(erase)
+            },
+            stale: { key in
+                cache.stale(for: key).map(erase)
+            },
+            needsRefresh: { key, now, ttl in
+                cache.needsRefresh(for: key, now: now, maxAge: ttl)
+            },
+            task: { key, factory in
+                Task {
+                    let task = cache.task(for: key) {
+                        let itemsAny = try await factory()
+                        return (itemsAny as? [Item]) ?? []
+                    }
+                    let items = try await task.value
+                    return erase(items)
+                }
+            },
+            clearInflight: { key in
+                cache.clearInflight(for: key)
+            },
+            store: { key, itemsAny, date in
+                guard let items = itemsAny as? [Item] else { return }
+                cache.store(items, for: key, fetchedAt: date)
+            },
+            fetch: { owner, name, limit in
+                let items = try await fetch(github, owner, name, limit)
+                return erase(items)
+            },
+            render: { menu, fullName, itemsAny in
+                guard let items = itemsAny as? [Item] else { return }
+                render(menu, fullName, items)
+            }
+        )
+    }
+
     private func refreshRecentListMenu(menu: NSMenu, context: RepoRecentMenuContext) async {
         guard case .loggedIn = self.appState.session.account else {
             let header = RecentMenuHeader(title: "Sign in to view", action: nil, fullName: context.fullName, systemImage: nil)
-            self.populateRecentListMenu(menu, header: header, rows: .signedOut)
+            self.populateRecentListMenu(menu, header: header, content: .signedOut)
             menu.update()
             return
         }
@@ -319,411 +537,95 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 fullName: context.fullName,
                 systemImage: "folder"
             )
-            self.populateRecentListMenu(menu, header: header, rows: .message("Invalid repository name"))
+            self.populateRecentListMenu(menu, header: header, content: .message("Invalid repository name"))
             menu.update()
             return
         }
 
         let now = Date()
-        switch context.kind {
-        case .issues:
-            let header = RecentMenuHeader(
-                title: "Open Issues",
-                action: #selector(self.openIssues),
-                fullName: context.fullName,
-                systemImage: "exclamationmark.circle"
+        guard let descriptor = self.recentMenuDescriptor(for: context.kind) else { return }
+
+        let header = RecentMenuHeader(
+            title: descriptor.headerTitle,
+            action: descriptor.openAction,
+            fullName: context.fullName,
+            systemImage: descriptor.headerIcon
+        )
+        let actions = descriptor.actions(context.fullName)
+        let cached = descriptor.cached(context.fullName, now, self.recentListCacheTTL)
+        let stale = cached ?? descriptor.stale(context.fullName)
+        if let stale {
+            self.populateRecentListMenu(
+                menu,
+                header: header,
+                actions: actions,
+                content: .items(stale, emptyTitle: descriptor.emptyTitle, render: { menu, items in
+                    descriptor.render(menu, header.fullName, items)
+                })
             )
-            let cached = self.recentIssuesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentIssuesCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .issues(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentIssuesCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentIssuesCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentIssues(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentIssuesCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentIssuesCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .issues(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .pullRequests:
-            let header = RecentMenuHeader(
-                title: "Open Pull Requests",
-                action: #selector(self.openPulls),
-                fullName: context.fullName,
-                systemImage: "arrow.triangle.branch"
-            )
-            let cached = self.recentPullRequestsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentPullRequestsCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentPullRequestsCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentPullRequestsCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentPullRequests(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentPullRequestsCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentPullRequestsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .pullRequests(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .releases:
-            let header = RecentMenuHeader(
-                title: "Open Releases",
-                action: #selector(self.openReleases),
-                fullName: context.fullName,
-                systemImage: "tag"
-            )
-            let hasLatestRelease = self.appState.session.repositories
-                .first(where: { $0.fullName == context.fullName })?
-                .latestRelease != nil
-            let actions = hasLatestRelease
-                ? [
-                    RecentMenuAction(
-                        title: "Open Latest Release",
-                        action: #selector(self.openLatestRelease),
-                        systemImage: "tag.fill",
-                        representedObject: context.fullName,
-                        isEnabled: true
-                    )
-                ]
-                : []
-
-            let cached = self.recentReleasesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentReleasesCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentReleasesCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentReleasesCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentReleases(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentReleasesCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentReleasesCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, actions: actions, rows: .releases(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, actions: actions, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .ciRuns:
-            let header = RecentMenuHeader(
-                title: "Open Actions",
-                action: #selector(self.openActions),
-                fullName: context.fullName,
-                systemImage: "bolt"
-            )
-            let cached = self.recentWorkflowRunsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentWorkflowRunsCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .workflowRuns(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentWorkflowRunsCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentWorkflowRunsCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentWorkflowRuns(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentWorkflowRunsCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentWorkflowRunsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .workflowRuns(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .discussions:
-            let header = RecentMenuHeader(
-                title: "Open Discussions",
-                action: #selector(self.openDiscussions),
-                fullName: context.fullName,
-                systemImage: "bubble.left.and.bubble.right"
-            )
-            let cached = self.recentDiscussionsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentDiscussionsCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .discussions(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentDiscussionsCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentDiscussionsCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentDiscussions(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentDiscussionsCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentDiscussionsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .discussions(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .tags:
-            let header = RecentMenuHeader(
-                title: "Open Tags",
-                action: #selector(self.openTags),
-                fullName: context.fullName,
-                systemImage: "tag"
-            )
-            let cached = self.recentTagsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentTagsCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .tags(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentTagsCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentTagsCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentTags(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentTagsCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentTagsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .tags(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .branches:
-            let header = RecentMenuHeader(
-                title: "Open Branches",
-                action: #selector(self.openBranches),
-                fullName: context.fullName,
-                systemImage: "point.topleft.down.curvedto.point.bottomright.up"
-            )
-            let cached = self.recentBranchesCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentBranchesCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .branches(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentBranchesCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentBranchesCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentBranches(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentBranchesCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentBranchesCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .branches(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
-        case .contributors:
-            let header = RecentMenuHeader(
-                title: "Open Contributors",
-                action: #selector(self.openContributors),
-                fullName: context.fullName,
-                systemImage: "person.2"
-            )
-            let cached = self.recentContributorsCache.cached(for: context.fullName, now: now, maxAge: self.recentListCacheTTL)
-            let stale = cached ?? self.recentContributorsCache.stale(for: context.fullName)
-            if let stale {
-                self.populateRecentListMenu(menu, header: header, rows: .contributors(stale))
-            } else {
-                self.populateRecentListMenu(menu, header: header, rows: .loading)
-            }
-            menu.update()
-
-            guard self.recentContributorsCache.needsRefresh(for: context.fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentContributorsCache.task(for: context.fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.topContributors(owner: owner, name: name, limit: recentListLimit)
-            }
-            defer { self.recentContributorsCache.clearInflight(for: context.fullName) }
-            do {
-                let items = try await task.value
-                self.recentContributorsCache.store(items, for: context.fullName, fetchedAt: Date())
-                self.populateRecentListMenu(menu, header: header, rows: .contributors(items))
-            } catch {
-                if stale == nil {
-                    self.populateRecentListMenu(menu, header: header, rows: .message("Failed to load"))
-                }
-            }
-            menu.update()
+        } else {
+            self.populateRecentListMenu(menu, header: header, actions: actions, content: .loading)
         }
+        menu.update()
+
+        guard descriptor.needsRefresh(context.fullName, now, self.recentListCacheTTL) else { return }
+        let task = descriptor.task(context.fullName) { [recentListLimit = self.recentListLimit] in
+            try await descriptor.fetch(owner, name, recentListLimit)
+        }
+        defer { descriptor.clearInflight(context.fullName) }
+        do {
+            let items = try await task.value
+            descriptor.store(context.fullName, items, Date())
+            self.populateRecentListMenu(
+                menu,
+                header: header,
+                actions: actions,
+                content: .items(items, emptyTitle: descriptor.emptyTitle, render: { menu, items in
+                    descriptor.render(menu, header.fullName, items)
+                })
+            )
+        } catch {
+            if stale == nil {
+                self.populateRecentListMenu(menu, header: header, actions: actions, content: .message("Failed to load"))
+            }
+        }
+        menu.update()
     }
 
     private func prefetchRecentLists(fullNames: Set<String>) {
         guard case .loggedIn = self.appState.session.account else { return }
         guard fullNames.isEmpty == false else { return }
 
+        let kinds = Array(self.recentMenuDescriptors().keys)
         for fullName in fullNames {
-            self.prefetchRecentList(fullName: fullName, kind: .issues)
-            self.prefetchRecentList(fullName: fullName, kind: .pullRequests)
-            self.prefetchRecentList(fullName: fullName, kind: .releases)
-            self.prefetchRecentList(fullName: fullName, kind: .ciRuns)
-            self.prefetchRecentList(fullName: fullName, kind: .discussions)
-            self.prefetchRecentList(fullName: fullName, kind: .tags)
-            self.prefetchRecentList(fullName: fullName, kind: .branches)
-            self.prefetchRecentList(fullName: fullName, kind: .contributors)
+            for kind in kinds {
+                self.prefetchRecentList(fullName: fullName, kind: kind)
+            }
         }
     }
 
     private func prefetchRecentList(fullName: String, kind: RepoRecentMenuKind) {
         guard let (owner, name) = self.ownerAndName(from: fullName) else { return }
         let now = Date()
-
-        switch kind {
-        case .issues:
-            guard self.recentIssuesCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentIssuesCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentIssues(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentIssuesCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentIssuesCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .pullRequests:
-            guard self.recentPullRequestsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentPullRequestsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentPullRequests(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentPullRequestsCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentPullRequestsCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .releases:
-            guard self.recentReleasesCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentReleasesCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentReleases(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentReleasesCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentReleasesCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .ciRuns:
-            guard self.recentWorkflowRunsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentWorkflowRunsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentWorkflowRuns(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentWorkflowRunsCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentWorkflowRunsCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .discussions:
-            guard self.recentDiscussionsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentDiscussionsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentDiscussions(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentDiscussionsCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentDiscussionsCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .tags:
-            guard self.recentTagsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentTagsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentTags(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentTagsCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentTagsCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .branches:
-            guard self.recentBranchesCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentBranchesCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.recentBranches(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentBranchesCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentBranchesCache.store(items, for: fullName, fetchedAt: Date())
-                }
-            }
-        case .contributors:
-            guard self.recentContributorsCache.needsRefresh(for: fullName, now: now, maxAge: self.recentListCacheTTL) else { return }
-            let task = self.recentContributorsCache.task(for: fullName) { [github = self.appState.github, recentListLimit = self.recentListLimit] in
-                try await github.topContributors(owner: owner, name: name, limit: recentListLimit)
-            }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                defer { self.recentContributorsCache.clearInflight(for: fullName) }
-                if let items = try? await task.value {
-                    self.recentContributorsCache.store(items, for: fullName, fetchedAt: Date())
-                }
+        guard let descriptor = self.recentMenuDescriptor(for: kind) else { return }
+        guard descriptor.needsRefresh(fullName, now, self.recentListCacheTTL) else { return }
+        let task = descriptor.task(fullName) { [recentListLimit = self.recentListLimit] in
+            try await descriptor.fetch(owner, name, recentListLimit)
+        }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { descriptor.clearInflight(fullName) }
+            if let items = try? await task.value {
+                descriptor.store(fullName, items, Date())
             }
         }
     }
 
-    private enum RecentMenuRows {
+    private enum RecentMenuContent {
         case signedOut
         case loading
         case message(String)
-        case issues([RepoIssueSummary])
-        case pullRequests([RepoPullRequestSummary])
-        case releases([RepoReleaseSummary])
-        case workflowRuns([RepoWorkflowRunSummary])
-        case discussions([RepoDiscussionSummary])
-        case tags([RepoTagSummary])
-        case branches([RepoBranchSummary])
-        case contributors([RepoContributorSummary])
+        case items([Any], emptyTitle: String, render: (NSMenu, [Any]) -> Void)
     }
 
     private struct RecentMenuHeader {
@@ -741,11 +643,28 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let isEnabled: Bool
     }
 
+    private struct RecentMenuDescriptor {
+        let kind: RepoRecentMenuKind
+        let headerTitle: String
+        let headerIcon: String?
+        let openAction: Selector
+        let emptyTitle: String
+        let actions: (String) -> [RecentMenuAction]
+        let cached: (String, Date, TimeInterval) -> [Any]?
+        let stale: (String) -> [Any]?
+        let needsRefresh: (String, Date, TimeInterval) -> Bool
+        let task: (String, @escaping () async throws -> [Any]) -> Task<[Any], Error>
+        let clearInflight: (String) -> Void
+        let store: (String, [Any], Date) -> Void
+        let fetch: (String, String, Int) async throws -> [Any]
+        let render: (NSMenu, String, [Any]) -> Void
+    }
+
     private func populateRecentListMenu(
         _ menu: NSMenu,
         header: RecentMenuHeader,
         actions: [RecentMenuAction] = [],
-        rows: RecentMenuRows
+        content: RecentMenuContent
     ) {
         menu.removeAllItems()
 
@@ -775,7 +694,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        switch rows {
+        switch content {
         case .signedOut:
             let item = NSMenuItem(title: "Sign in to load items", action: nil, keyEquivalent: "")
             item.isEnabled = false
@@ -788,93 +707,14 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
             item.isEnabled = false
             menu.addItem(item)
-        case let .issues(items):
+        case let .items(items, emptyTitle, render):
             if items.isEmpty {
-                let item = NSMenuItem(title: "No open issues", action: nil, keyEquivalent: "")
+                let item = NSMenuItem(title: emptyTitle, action: nil, keyEquivalent: "")
                 item.isEnabled = false
                 menu.addItem(item)
                 return
             }
-            for issue in items.prefix(self.recentListLimit) {
-                self.addIssueMenuItem(issue, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .pullRequests(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No open pull requests", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for pr in items.prefix(self.recentListLimit) {
-                self.addPullRequestMenuItem(pr, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .releases(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No releases", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for release in items.prefix(self.recentListLimit) {
-                self.addReleaseMenuItem(release, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .workflowRuns(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No CI runs", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for run in items.prefix(self.recentListLimit) {
-                self.addWorkflowRunMenuItem(run, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .discussions(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No discussions", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for discussion in items.prefix(self.recentListLimit) {
-                self.addDiscussionMenuItem(discussion, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .tags(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No tags", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for tag in items.prefix(self.recentListLimit) {
-                self.addTagMenuItem(tag, repoFullName: header.fullName, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .branches(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No branches", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for branch in items.prefix(self.recentListLimit) {
-                self.addBranchMenuItem(branch, repoFullName: header.fullName, to: menu)
-            }
-            self.menuBuilder.refreshMenuViewHeights(in: menu)
-        case let .contributors(items):
-            if items.isEmpty {
-                let item = NSMenuItem(title: "No contributors", action: nil, keyEquivalent: "")
-                item.isEnabled = false
-                menu.addItem(item)
-                return
-            }
-            for contributor in items.prefix(self.recentListLimit) {
-                self.addContributorMenuItem(contributor, to: menu)
-            }
+            render(menu, items)
             self.menuBuilder.refreshMenuViewHeights(in: menu)
         }
     }
@@ -1127,24 +967,8 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     }
 
     func cachedRecentListCount(fullName: String, kind: RepoRecentMenuKind) -> Int? {
-        switch kind {
-        case .issues:
-            self.recentIssuesCache.stale(for: fullName)?.count
-        case .pullRequests:
-            self.recentPullRequestsCache.stale(for: fullName)?.count
-        case .releases:
-            self.recentReleasesCache.stale(for: fullName)?.count
-        case .ciRuns:
-            self.recentWorkflowRunsCache.stale(for: fullName)?.count
-        case .discussions:
-            self.recentDiscussionsCache.stale(for: fullName)?.count
-        case .tags:
-            self.recentTagsCache.stale(for: fullName)?.count
-        case .branches:
-            self.recentBranchesCache.stale(for: fullName)?.count
-        case .contributors:
-            self.recentContributorsCache.stale(for: fullName)?.count
-        }
+        guard let descriptor = self.recentMenuDescriptor(for: kind) else { return nil }
+        return descriptor.stale(fullName)?.count
     }
 }
 

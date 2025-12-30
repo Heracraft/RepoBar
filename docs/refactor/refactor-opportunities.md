@@ -153,7 +153,7 @@ Last updated: 2025-12-28
 - Phase 4: settings migration + UI style system.
 
 ## Submenu Refactor Checklist (2025-12-30)
-- [ ] Create a `RecentMenuDescriptor` table to drive submenu config, caching, fetching, and row rendering (remove per-kind switch blocks).
+- [x] Create a `RecentMenuDescriptor` table to drive submenu config, caching, fetching, and row rendering (remove per-kind switch blocks).
 - [ ] Extract a shared SwiftUI row layout for recent submenu items (issues/PRs/releases/CI/discussions/tags/branches/contributors/assets).
 - [ ] Add a GitHubClient helper for recent-list REST calls + decoding to reduce endpoint boilerplate.
 - [ ] Centralize repo web URL building (actions/discussions/tags/branches/contributors/releases/assets).
