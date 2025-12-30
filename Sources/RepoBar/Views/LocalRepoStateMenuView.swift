@@ -16,20 +16,10 @@ struct LocalRepoStateMenuView: View {
         VStack(alignment: .leading, spacing: 6) {
             self.headerRow
             if self.detailsLine.isEmpty == false {
-                Text(self.detailsLine)
-                    .font(.caption2)
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                self.detailsRow
             }
             if self.status.dirtyFiles.isEmpty == false {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(self.status.dirtyFiles.prefix(MenuStyle.submenuDirtyFileLimit)), id: \.self) { file in
-                        Text("- \(file)")
-                            .font(.caption2)
-                            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
+                self.dirtyFilesRow
             }
             HStack(spacing: 12) {
                 self.actionButton(
@@ -70,10 +60,14 @@ struct LocalRepoStateMenuView: View {
     }
 
     private var headerRow: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
             Image(systemName: self.status.syncState.symbolName)
                 .font(.caption2)
                 .foregroundStyle(self.localSyncColor(for: self.status.syncState))
+                .frame(width: MenuStyle.submenuIconColumnWidth, alignment: .center)
+                .alignmentGuide(.firstTextBaseline) { dimensions in
+                    dimensions[VerticalAlignment.center] + MenuStyle.submenuIconBaselineOffset
+                }
             Text(self.status.branch)
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1)
@@ -86,6 +80,42 @@ struct LocalRepoStateMenuView: View {
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
             }
             Spacer(minLength: 8)
+        }
+    }
+
+    private var detailsRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
+            Text(" ")
+                .font(.caption2)
+                .frame(width: MenuStyle.submenuIconColumnWidth)
+                .accessibilityHidden(true)
+
+            Text(self.detailsLine)
+                .font(.caption2)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var dirtyFilesRow: some View {
+        HStack(alignment: .top, spacing: MenuStyle.submenuIconSpacing) {
+            Text(" ")
+                .font(.caption2)
+                .frame(width: MenuStyle.submenuIconColumnWidth)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(self.status.dirtyFiles.prefix(MenuStyle.submenuDirtyFileLimit)), id: \.self) { file in
+                    Text("- \(file)")
+                        .font(.caption2)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+
+            Spacer(minLength: 0)
         }
     }
 
@@ -200,11 +230,15 @@ private struct LocalRepoMenuEntryButton: View {
 
     var body: some View {
         Button(action: self.action) {
-            HStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
                 Image(systemName: self.systemImage)
                     .font(.caption)
+                    .frame(width: MenuStyle.submenuIconColumnWidth, alignment: .center)
+                    .alignmentGuide(.firstTextBaseline) { dimensions in
+                        dimensions[VerticalAlignment.center] + MenuStyle.submenuIconBaselineOffset
+                    }
                 Text(self.title)
-                    .font(.caption)
+                    .font(.system(size: 14))
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

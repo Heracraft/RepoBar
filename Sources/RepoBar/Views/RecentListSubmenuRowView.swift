@@ -6,9 +6,6 @@ struct RecentListSubmenuRowView: View {
     let badgeText: String?
     let onOpen: (() -> Void)?
 
-    private let iconColumnWidth: CGFloat = 18
-    private let iconBaselineOffset: CGFloat = 1
-
     @Environment(\.menuItemHighlighted) private var isHighlighted
     @Environment(\.colorScheme) private var colorScheme
 
@@ -35,14 +32,14 @@ struct RecentListSubmenuRowView: View {
     }
 
     private var row: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
             Image(systemName: self.systemImage)
                 .symbolRenderingMode(.hierarchical)
                 .font(.caption)
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                .frame(width: self.iconColumnWidth, alignment: .center)
+                .frame(width: MenuStyle.submenuIconColumnWidth, alignment: .center)
                 .alignmentGuide(.firstTextBaseline) { dimensions in
-                    dimensions[VerticalAlignment.center] + self.iconBaselineOffset
+                    dimensions[VerticalAlignment.center] + MenuStyle.submenuIconBaselineOffset
                 }
 
             Text(self.title)

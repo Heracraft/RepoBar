@@ -22,6 +22,10 @@ enum MenuStyle {
     static let bannerHorizontalPadding: CGFloat = 10
     static let bannerVerticalPadding: CGFloat = 4
 
+    static let submenuIconColumnWidth: CGFloat = 18
+    static let submenuIconSpacing: CGFloat = 8
+    static let submenuIconBaselineOffset: CGFloat = 1
+
     static let heatmapInlineHeight: CGFloat = 48
     static let heatmapInlineBottomTrim: CGFloat = 2
     static let heatmapSubmenuHeight: CGFloat = 44
