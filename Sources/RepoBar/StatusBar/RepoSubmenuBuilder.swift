@@ -174,7 +174,6 @@ struct RepoSubmenuBuilder {
         let commits = Array((cachedCommits ?? []).prefix(AppLimits.RepoCommits.totalLimit))
         let commitPreview = Array(commits.prefix(AppLimits.RepoCommits.previewLimit))
         menu.addItem(.separator())
-        menu.addItem(self.menuBuilder.infoItem("Commits"))
         menu.addItem(self.menuBuilder.actionItem(
             title: "Open Commits",
             action: #selector(self.target.openCommits),
