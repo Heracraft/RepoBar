@@ -129,6 +129,16 @@ public struct LocalGitService {
         let git = LocalGitRunner()
         _ = try git.run(["switch", branch], in: repoURL)
     }
+
+    public func createBranch(at repoURL: URL, name: String) throws {
+        let git = LocalGitRunner()
+        _ = try git.run(["switch", "-c", name], in: repoURL)
+    }
+
+    public func createWorktree(at repoURL: URL, path: URL, branch: String) throws {
+        let git = LocalGitRunner()
+        _ = try git.run(["worktree", "add", path.path, "-b", branch], in: repoURL)
+    }
 }
 
 private struct LocalGitRunner: Sendable {

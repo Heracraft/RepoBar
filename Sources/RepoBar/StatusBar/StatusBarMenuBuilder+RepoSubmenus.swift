@@ -211,6 +211,13 @@ extension StatusBarMenuBuilder {
         submenu.autoenablesItems = false
         submenu.delegate = self.target
         self.target.registerLocalBranchMenu(submenu, repoPath: local.path, fullName: fullName)
+        submenu.addItem(self.actionItem(
+            title: "Create Branch…",
+            action: #selector(self.target.createLocalBranch),
+            represented: local.path,
+            systemImage: "plus"
+        ))
+        submenu.addItem(.separator())
         submenu.addItem(self.loadingItem())
 
         let row = RecentListSubmenuRowView(
@@ -226,6 +233,13 @@ extension StatusBarMenuBuilder {
         submenu.autoenablesItems = false
         submenu.delegate = self.target
         self.target.registerLocalWorktreeMenu(submenu, repoPath: local.path, fullName: fullName)
+        submenu.addItem(self.actionItem(
+            title: "Create Worktree…",
+            action: #selector(self.target.createLocalWorktree),
+            represented: local.path,
+            systemImage: "plus"
+        ))
+        submenu.addItem(.separator())
         submenu.addItem(self.loadingItem())
 
         let row = RecentListSubmenuRowView(

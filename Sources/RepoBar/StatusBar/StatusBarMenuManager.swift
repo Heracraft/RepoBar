@@ -271,6 +271,44 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.appState.refreshLocalProjects()
     }
 
+    @objc func createLocalBranch(_ sender: NSMenuItem) {
+        guard let repoURL = sender.representedObject as? URL else { return }
+        let name = self.promptForText(
+            title: "Create branch",
+            message: "Enter a new branch name."
+        )
+        guard let name, name.isEmpty == false else { return }
+        self.runLocalGitTask(
+            title: "Create branch failed",
+            status: nil,
+            notifyOnSuccess: false,
+            action: .createBranch(repoURL, name)
+        )
+    }
+
+    @objc func createLocalWorktree(_ sender: NSMenuItem) {
+        guard let repoURL = sender.representedObject as? URL else { return }
+        let branchName = self.promptForText(
+            title: "Create worktree",
+            message: "Enter a branch name for the new worktree."
+        )
+        guard let branchName, branchName.isEmpty == false else { return }
+        let defaultPath = repoURL.deletingLastPathComponent().appendingPathComponent(branchName, isDirectory: true)
+        let pathText = self.promptForText(
+            title: "Worktree folder",
+            message: "Enter the folder path for the new worktree.",
+            defaultValue: defaultPath.path
+        )
+        guard let pathText, pathText.isEmpty == false else { return }
+        let worktreeURL = URL(fileURLWithPath: pathText, isDirectory: true)
+        self.runLocalGitTask(
+            title: "Create worktree failed",
+            status: nil,
+            notifyOnSuccess: false,
+            action: .createWorktree(repoURL, worktreeURL, branchName)
+        )
+    }
+
     @objc func copyRepoName(_ sender: NSMenuItem) {
         guard let fullName = self.repoFullName(from: sender) else { return }
         let pb = NSPasteboard.general
@@ -427,13 +465,17 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         case rebase(URL)
         case reset(URL)
         case switchBranch(URL, String)
+        case createBranch(URL, String)
+        case createWorktree(URL, URL, String)
 
         var repoURL: URL {
             switch self {
             case let .sync(url),
                  let .rebase(url),
                  let .reset(url),
-                 let .switchBranch(url, _):
+                 let .switchBranch(url, _),
+                 let .createBranch(url, _),
+                 let .createWorktree(url, _, _):
                 url
             }
         }
@@ -584,7 +626,25 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             try service.hardResetToUpstream(at: url)
         case let .switchBranch(url, branch):
             try service.switchBranch(at: url, branch: branch)
+        case let .createBranch(url, name):
+            try service.createBranch(at: url, name: name)
+        case let .createWorktree(url, path, branch):
+            try service.createWorktree(at: url, path: path, branch: branch)
         }
+    }
+
+    private func promptForText(title: String, message: String, defaultValue: String? = nil) -> String? {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 22))
+        field.stringValue = defaultValue ?? ""
+        alert.accessoryView = field
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return nil }
+        return field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func confirmHardReset(for status: LocalRepoStatus) -> Bool {
