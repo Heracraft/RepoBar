@@ -9,18 +9,24 @@ final class LocalGitMenuCoordinator {
     private let appState: AppState
     private let menuBuilder: StatusBarMenuBuilder
     private let menuItemFactory: MenuItemViewFactory
+    private let recentMenuService: RecentMenuService
     private var localBranchMenus: [ObjectIdentifier: LocalGitMenuEntry] = [:]
     private var localWorktreeMenus: [ObjectIdentifier: LocalGitMenuEntry] = [:]
+    private var webURLBuilder: RepoWebURLBuilder {
+        RepoWebURLBuilder(host: self.appState.session.settings.githubHost)
+    }
 
     init(
         appState: AppState,
         menuBuilder: StatusBarMenuBuilder,
         menuItemFactory: MenuItemViewFactory,
+        recentMenuService: RecentMenuService,
         actionHandler: StatusBarMenuManager
     ) {
         self.appState = appState
         self.menuBuilder = menuBuilder
         self.menuItemFactory = menuItemFactory
+        self.recentMenuService = recentMenuService
         self.actionHandler = actionHandler
     }
 
@@ -29,7 +35,18 @@ final class LocalGitMenuCoordinator {
             menu: menu,
             repoPath: repoPath,
             fullName: fullName,
-            localStatus: localStatus
+            localStatus: localStatus,
+            includesRemoteBranches: false
+        )
+    }
+
+    func registerCombinedBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String, localStatus: LocalRepoStatus) {
+        self.localBranchMenus[ObjectIdentifier(menu)] = LocalGitMenuEntry(
+            menu: menu,
+            repoPath: repoPath,
+            fullName: fullName,
+            localStatus: localStatus,
+            includesRemoteBranches: true
         )
     }
 
@@ -38,7 +55,8 @@ final class LocalGitMenuCoordinator {
             menu: menu,
             repoPath: repoPath,
             fullName: fullName,
-            localStatus: nil
+            localStatus: nil,
+            includesRemoteBranches: false
         )
     }
 
@@ -51,7 +69,12 @@ final class LocalGitMenuCoordinator {
         if let entry = self.localBranchMenus[ObjectIdentifier(menu)] {
             self.menuBuilder.refreshMenuViewHeights(in: menu)
             Task { @MainActor [weak self] in
-                await self?.refreshLocalBranchMenu(menu: menu, entry: entry)
+                guard let self else { return }
+                if entry.includesRemoteBranches {
+                    await self.refreshCombinedBranchMenu(menu: menu, entry: entry)
+                } else {
+                    await self.refreshLocalBranchMenu(menu: menu, entry: entry)
+                }
             }
             return true
         }
@@ -160,9 +183,7 @@ final class LocalGitMenuCoordinator {
     private func refreshLocalBranchMenu(menu: NSMenu, entry: LocalGitMenuEntry) async {
         let repoPath = entry.repoPath
         let fullName = entry.fullName
-        let result = await Task.detached { () -> Result<LocalGitBranchSnapshot, Error> in
-            Result { try LocalGitService().branchDetails(at: repoPath) }
-        }.value
+        let result = await self.loadLocalBranchSnapshot(repoPath: repoPath)
 
         menu.removeAllItems()
         self.addLocalBranchMenuHeader(menu: menu, repoPath: repoPath)
@@ -215,6 +236,172 @@ final class LocalGitMenuCoordinator {
             self.menuBuilder.refreshMenuViewHeights(in: menu)
             menu.update()
         }
+    }
+
+    private func refreshCombinedBranchMenu(menu: NSMenu, entry: LocalGitMenuEntry) async {
+        let repoPath = entry.repoPath
+        let fullName = entry.fullName
+        let localResult = await self.loadLocalBranchSnapshot(repoPath: repoPath)
+
+        let now = Date()
+        guard case .loggedIn = self.appState.session.account else {
+            self.populateCombinedBranchMenu(
+                menu: menu,
+                entry: entry,
+                localResult: localResult,
+                remoteBranches: nil,
+                remoteMessage: "Sign in to load branches",
+                remoteEmptyTitle: "No branches"
+            )
+            return
+        }
+
+        guard let (owner, name) = self.ownerAndName(from: fullName) else {
+            self.populateCombinedBranchMenu(
+                menu: menu,
+                entry: entry,
+                localResult: localResult,
+                remoteBranches: nil,
+                remoteMessage: "Invalid repository name",
+                remoteEmptyTitle: "No branches"
+            )
+            return
+        }
+
+        guard let descriptor = self.recentMenuService.descriptor(for: .branches) else { return }
+        let cachedItems = descriptor.cached(fullName, now, self.recentMenuService.cacheTTL)
+            ?? descriptor.stale(fullName)
+        let cachedBranches = self.remoteBranches(from: cachedItems)
+        let needsRefresh = descriptor.needsRefresh(fullName, now, self.recentMenuService.cacheTTL)
+        let remoteMessage = cachedBranches == nil && needsRefresh ? "Loading…" : nil
+        self.populateCombinedBranchMenu(
+            menu: menu,
+            entry: entry,
+            localResult: localResult,
+            remoteBranches: cachedBranches,
+            remoteMessage: remoteMessage,
+            remoteEmptyTitle: descriptor.emptyTitle
+        )
+
+        guard needsRefresh else { return }
+        do {
+            let items = try await descriptor.load(fullName, owner, name, self.recentMenuService.listLimit)
+            let branches = self.remoteBranches(from: items)
+            self.populateCombinedBranchMenu(
+                menu: menu,
+                entry: entry,
+                localResult: localResult,
+                remoteBranches: branches,
+                remoteMessage: nil,
+                remoteEmptyTitle: descriptor.emptyTitle
+            )
+        } catch is AsyncTimeoutError {
+            await DiagnosticsLogger.shared.message("Recent list timed out: branches \(fullName)")
+            if cachedBranches == nil {
+                self.populateCombinedBranchMenu(
+                    menu: menu,
+                    entry: entry,
+                    localResult: localResult,
+                    remoteBranches: nil,
+                    remoteMessage: "Timed out",
+                    remoteEmptyTitle: descriptor.emptyTitle
+                )
+            }
+        } catch {
+            await DiagnosticsLogger.shared.message(
+                "Recent list failed: branches \(fullName) error=\(error.localizedDescription)"
+            )
+            if cachedBranches == nil {
+                self.populateCombinedBranchMenu(
+                    menu: menu,
+                    entry: entry,
+                    localResult: localResult,
+                    remoteBranches: nil,
+                    remoteMessage: "Failed to load",
+                    remoteEmptyTitle: descriptor.emptyTitle
+                )
+            }
+        }
+    }
+
+    private func populateCombinedBranchMenu(
+        menu: NSMenu,
+        entry: LocalGitMenuEntry,
+        localResult: Result<LocalGitBranchSnapshot, Error>,
+        remoteBranches: [RepoBranchSummary]?,
+        remoteMessage: String?,
+        remoteEmptyTitle: String
+    ) {
+        menu.removeAllItems()
+        self.addLocalBranchMenuHeader(menu: menu, repoPath: entry.repoPath)
+        switch localResult {
+        case let .success(snapshot):
+            if snapshot.branches.isEmpty, snapshot.isDetachedHead == false {
+                menu.addItem(self.menuBuilder.infoItem("No local branches"))
+            }
+            if snapshot.isDetachedHead {
+                let model = LocalRefMenuRowViewModel(
+                    kind: .branch,
+                    title: "Detached HEAD",
+                    detail: nil,
+                    isCurrent: true,
+                    isDetached: true,
+                    upstream: nil,
+                    aheadCount: nil,
+                    behindCount: nil,
+                    lastCommitDate: snapshot.detachedCommitDate,
+                    lastCommitAuthor: snapshot.detachedCommitAuthor,
+                    dirtySummary: entry.localStatus?.dirtyCounts?.summary
+                )
+                menu.addItem(self.makeLocalBranchMenuItem(model, repoPath: entry.repoPath, fullName: entry.fullName, isCurrent: true))
+            }
+            for branch in snapshot.branches {
+                let dirtySummary = branch.isCurrent ? entry.localStatus?.dirtyCounts?.summary : nil
+                let model = LocalRefMenuRowViewModel(
+                    kind: .branch,
+                    title: branch.name,
+                    detail: nil,
+                    isCurrent: branch.isCurrent,
+                    isDetached: false,
+                    upstream: branch.upstream,
+                    aheadCount: branch.aheadCount,
+                    behindCount: branch.behindCount,
+                    lastCommitDate: branch.lastCommitDate,
+                    lastCommitAuthor: branch.lastCommitAuthor,
+                    dirtySummary: dirtySummary
+                )
+                menu.addItem(self.makeLocalBranchMenuItem(model, repoPath: entry.repoPath, fullName: entry.fullName, isCurrent: branch.isCurrent))
+            }
+        case let .failure(error):
+            menu.addItem(self.menuBuilder.infoItem("Failed to load local branches"))
+            self.presentAlert(title: "Branch list failed", message: error.userFacingMessage)
+        }
+
+        menu.addItem(.separator())
+        menu.addItem(self.menuBuilder.actionItem(
+            title: "Open Branches",
+            action: #selector(StatusBarMenuManager.openBranches(_:)),
+            represented: entry.fullName,
+            systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+        ))
+        menu.addItem(.separator())
+
+        if let remoteMessage {
+            menu.addItem(self.menuBuilder.infoItem(remoteMessage))
+        } else if let remoteBranches {
+            if remoteBranches.isEmpty {
+                menu.addItem(self.menuBuilder.infoItem(remoteEmptyTitle))
+            } else {
+                for branch in remoteBranches {
+                    self.addRemoteBranchMenuItem(branch, repoFullName: entry.fullName, to: menu)
+                }
+            }
+        } else {
+            menu.addItem(self.menuBuilder.infoItem(remoteEmptyTitle))
+        }
+
+        self.menuBuilder.refreshMenuViewHeights(in: menu)
+        menu.update()
     }
 
     private func refreshLocalWorktreeMenu(menu: NSMenu, entry: LocalGitMenuEntry) async {
@@ -294,6 +481,16 @@ final class LocalGitMenuCoordinator {
         return item
     }
 
+    private func addRemoteBranchMenuItem(_ summary: RepoBranchSummary, repoFullName: String, to menu: NSMenu) {
+        let view = BranchMenuItemView(summary: summary) { [weak self] in
+            guard let self, let url = self.webURLBuilder.branchURL(fullName: repoFullName, branch: summary.name) else { return }
+            self.actionHandler.open(url: url)
+        }
+        let item = self.menuItemFactory.makeItem(for: view, enabled: true, highlightable: true)
+        item.toolTip = "\(summary.name)\n\(summary.commitSHA)"
+        menu.addItem(item)
+    }
+
     private func addLocalBranchMenuHeader(menu: NSMenu, repoPath: URL) {
         menu.addItem(self.menuBuilder.actionItem(
             title: "Create Branch…",
@@ -312,6 +509,23 @@ final class LocalGitMenuCoordinator {
             systemImage: "plus"
         ))
         menu.addItem(.separator())
+    }
+
+    private func loadLocalBranchSnapshot(repoPath: URL) async -> Result<LocalGitBranchSnapshot, Error> {
+        await Task.detached { () -> Result<LocalGitBranchSnapshot, Error> in
+            Result { try LocalGitService().branchDetails(at: repoPath) }
+        }.value
+    }
+
+    private func ownerAndName(from fullName: String) -> (String, String)? {
+        let parts = fullName.split(separator: "/", maxSplits: 1)
+        guard parts.count == 2 else { return nil }
+        return (String(parts[0]), String(parts[1]))
+    }
+
+    private func remoteBranches(from items: RecentMenuItems?) -> [RepoBranchSummary]? {
+        guard case let .branches(branches) = items else { return nil }
+        return branches
     }
 
     private func runLocalGitTask(
@@ -437,6 +651,7 @@ private struct LocalGitMenuEntry {
     let repoPath: URL
     let fullName: String
     let localStatus: LocalRepoStatus?
+    let includesRemoteBranches: Bool
 }
 
 private struct LocalBranchAction {

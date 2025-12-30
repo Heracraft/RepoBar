@@ -51,7 +51,6 @@ struct RepoSubmenuBuilder {
                 systemImage: "terminal"
             ))
             menu.addItem(.separator())
-            menu.addItem(self.localBranchesSubmenuItem(for: local, fullName: repo.title))
             menu.addItem(self.localWorktreesSubmenuItem(for: local, fullName: repo.title))
             menu.addItem(.separator())
         } else {
@@ -124,15 +123,20 @@ struct RepoSubmenuBuilder {
             badgeText: cachedTagCount.flatMap { $0 > 0 ? String($0) : nil }
         )))
         let cachedBranchCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .branches)
-        menu.addItem(self.recentListSubmenuItem(RecentListConfig(
-            title: "Branches",
-            systemImage: "point.topleft.down.curvedto.point.bottomright.up",
-            fullName: repo.title,
-            kind: .branches,
-            openTitle: "Open Branches",
-            openAction: #selector(self.target.openBranches),
-            badgeText: cachedBranchCount.flatMap { $0 > 0 ? String($0) : nil }
-        )))
+        let branchBadge = cachedBranchCount.flatMap { $0 > 0 ? String($0) : nil }
+        if let local = repo.localStatus {
+            menu.addItem(self.branchesSubmenuItem(for: local, fullName: repo.title, badgeText: branchBadge))
+        } else {
+            menu.addItem(self.recentListSubmenuItem(RecentListConfig(
+                title: "Branches",
+                systemImage: "point.topleft.down.curvedto.point.bottomright.up",
+                fullName: repo.title,
+                kind: .branches,
+                openTitle: "Open Branches",
+                openAction: #selector(self.target.openBranches),
+                badgeText: branchBadge
+            )))
+        }
         let cachedContributorCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .contributors)
         menu.addItem(self.recentListSubmenuItem(RecentListConfig(
             title: "Contributors",
@@ -252,11 +256,11 @@ struct RepoSubmenuBuilder {
         return menu
     }
 
-    private func localBranchesSubmenuItem(for local: LocalRepoStatus, fullName: String) -> NSMenuItem {
+    private func branchesSubmenuItem(for local: LocalRepoStatus, fullName: String, badgeText: String?) -> NSMenuItem {
         let submenu = NSMenu()
         submenu.autoenablesItems = false
         submenu.delegate = self.target
-        self.target.registerLocalBranchMenu(submenu, repoPath: local.path, fullName: fullName, localStatus: local)
+        self.target.registerCombinedBranchMenu(submenu, repoPath: local.path, fullName: fullName, localStatus: local)
         submenu.addItem(self.menuBuilder.actionItem(
             title: "Create Branch…",
             action: #selector(self.target.createLocalBranch),
@@ -264,13 +268,19 @@ struct RepoSubmenuBuilder {
             systemImage: "plus"
         ))
         submenu.addItem(.separator())
+        submenu.addItem(self.menuBuilder.actionItem(
+            title: "Open Branches",
+            action: #selector(self.target.openBranches),
+            represented: fullName,
+            systemImage: "point.topleft.down.curvedto.point.bottomright.up"
+        ))
+        submenu.addItem(.separator())
         submenu.addItem(self.loadingItem())
 
         let row = RecentListSubmenuRowView(
-            title: "Switch Branch",
+            title: "Branches",
             systemImage: "point.topleft.down.curvedto.point.bottomright.up",
-            badgeText: nil,
-            detailText: local.branch == "detached" ? "Detached" : local.branch
+            badgeText: badgeText
         )
         return self.menuBuilder.viewItem(for: row, enabled: true, highlightable: true, submenu: submenu)
     }

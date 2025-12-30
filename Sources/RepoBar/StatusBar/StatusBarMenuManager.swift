@@ -21,6 +21,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         appState: self.appState,
         menuBuilder: self.menuBuilder,
         menuItemFactory: self.menuItemFactory,
+        recentMenuService: self.recentMenuService,
         actionHandler: self
     )
     lazy var activityMenuCoordinator = ActivityMenuCoordinator(
@@ -192,6 +193,10 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     func registerLocalBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String, localStatus: LocalRepoStatus) {
         self.localGitMenuCoordinator.registerLocalBranchMenu(menu, repoPath: repoPath, fullName: fullName, localStatus: localStatus)
+    }
+
+    func registerCombinedBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String, localStatus: LocalRepoStatus) {
+        self.localGitMenuCoordinator.registerCombinedBranchMenu(menu, repoPath: repoPath, fullName: fullName, localStatus: localStatus)
     }
 
     func registerLocalWorktreeMenu(_ menu: NSMenu, repoPath: URL, fullName: String) {
