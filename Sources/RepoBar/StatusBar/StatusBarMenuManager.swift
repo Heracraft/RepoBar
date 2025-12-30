@@ -221,7 +221,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.open(url: url)
     }
 
-
     @objc func openLocalTerminal(_ sender: NSMenuItem) {
         guard let url = sender.representedObject as? URL else { return }
         self.openLocalTerminal(at: url)
@@ -236,7 +235,6 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             ghosttyOpenMode: self.appState.session.settings.localProjects.ghosttyOpenMode
         )
     }
-
 
     func syncLocalRepo(_ status: LocalRepoStatus) {
         self.runLocalGitTask(
@@ -565,6 +563,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         weak var menu: NSMenu?
         let repoPath: URL
         let fullName: String
+        let localStatus: LocalRepoStatus?
     }
 
     struct LocalBranchAction {
@@ -578,11 +577,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let fullName: String
     }
 
-    func registerLocalBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String) {
+    func registerLocalBranchMenu(_ menu: NSMenu, repoPath: URL, fullName: String, localStatus: LocalRepoStatus) {
         self.localBranchMenus[ObjectIdentifier(menu)] = LocalGitMenuEntry(
             menu: menu,
             repoPath: repoPath,
-            fullName: fullName
+            fullName: fullName,
+            localStatus: localStatus
         )
     }
 
@@ -590,36 +590,59 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         self.localWorktreeMenus[ObjectIdentifier(menu)] = LocalGitMenuEntry(
             menu: menu,
             repoPath: repoPath,
-            fullName: fullName
+            fullName: fullName,
+            localStatus: nil
         )
     }
 
     private func refreshLocalBranchMenu(menu: NSMenu, entry: LocalGitMenuEntry) async {
         let repoPath = entry.repoPath
         let fullName = entry.fullName
-        let result = await Task.detached { () -> Result<[LocalGitBranch], Error> in
-            Result { try LocalGitService().branches(at: repoPath) }
+        let result = await Task.detached { () -> Result<LocalGitBranchSnapshot, Error> in
+            Result { try LocalGitService().branchDetails(at: repoPath) }
         }.value
 
         menu.removeAllItems()
         self.addLocalBranchMenuHeader(menu: menu, repoPath: repoPath)
         switch result {
-        case let .success(branches):
-            if branches.isEmpty {
+        case let .success(snapshot):
+            if snapshot.branches.isEmpty, snapshot.isDetachedHead == false {
                 menu.addItem(self.menuBuilder.infoItem("No branches"))
                 self.menuBuilder.refreshMenuViewHeights(in: menu)
                 menu.update()
                 return
             }
-            for branch in branches {
-                let item = NSMenuItem(title: branch.name, action: #selector(self.switchLocalBranch), keyEquivalent: "")
-                item.target = self
-                item.representedObject = LocalBranchAction(
+            if snapshot.isDetachedHead {
+                let detached = self.makeLocalBranchMenuItem(
+                    name: "Detached HEAD",
+                    isCurrent: true,
+                    isDetached: true,
+                    upstream: nil,
+                    aheadCount: nil,
+                    behindCount: nil,
+                    lastCommitDate: snapshot.detachedCommitDate,
+                    lastCommitAuthor: snapshot.detachedCommitAuthor,
+                    dirtySummary: entry.localStatus?.dirtyCounts?.summary,
                     repoPath: repoPath,
-                    branch: branch.name,
                     fullName: fullName
                 )
-                item.state = branch.isCurrent ? .on : .off
+                menu.addItem(detached)
+            }
+            for branch in snapshot.branches {
+                let dirtySummary = branch.isCurrent ? entry.localStatus?.dirtyCounts?.summary : nil
+                let item = self.makeLocalBranchMenuItem(
+                    name: branch.name,
+                    isCurrent: branch.isCurrent,
+                    isDetached: false,
+                    upstream: branch.upstream,
+                    aheadCount: branch.aheadCount,
+                    behindCount: branch.behindCount,
+                    lastCommitDate: branch.lastCommitDate,
+                    lastCommitAuthor: branch.lastCommitAuthor,
+                    dirtySummary: dirtySummary,
+                    repoPath: repoPath,
+                    fullName: fullName
+                )
                 menu.addItem(item)
             }
             self.menuBuilder.refreshMenuViewHeights(in: menu)
@@ -686,6 +709,42 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         item.target = self
         item.action = #selector(self.switchLocalWorktree(_:))
         item.representedObject = LocalWorktreeAction(path: path, fullName: fullName)
+        return item
+    }
+
+    func makeLocalBranchMenuItem(
+        name: String,
+        isCurrent: Bool,
+        isDetached: Bool,
+        upstream: String?,
+        aheadCount: Int?,
+        behindCount: Int?,
+        lastCommitDate: Date?,
+        lastCommitAuthor: String?,
+        dirtySummary: String?,
+        repoPath: URL,
+        fullName: String
+    ) -> NSMenuItem {
+        let row = LocalBranchMenuRowView(
+            name: name,
+            isCurrent: isCurrent,
+            isDetached: isDetached,
+            upstream: upstream,
+            aheadCount: aheadCount,
+            behindCount: behindCount,
+            lastCommitDate: lastCommitDate,
+            lastCommitAuthor: lastCommitAuthor,
+            dirtySummary: dirtySummary
+        )
+        let item = self.menuBuilder.viewItem(for: row, enabled: true, highlightable: true)
+        item.target = self
+        item.action = #selector(self.switchLocalBranch)
+        item.representedObject = LocalBranchAction(
+            repoPath: repoPath,
+            branch: name,
+            fullName: fullName
+        )
+        item.state = isCurrent ? .on : .off
         return item
     }
 
@@ -1841,6 +1900,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     func registerRecentListMenu(_ menu: NSMenu, context: RepoRecentMenuContext) {
         self.recentListMenus[ObjectIdentifier(menu)] = RecentListMenuEntry(menu: menu, context: context)
     }
+
+#if DEBUG
+    func setMainMenuForTesting(_ menu: NSMenu) {
+        self.mainMenu = menu
+    }
+#endif
 
     func isRecentListMenu(_ menu: NSMenu) -> Bool {
         self.recentListMenus[ObjectIdentifier(menu)] != nil

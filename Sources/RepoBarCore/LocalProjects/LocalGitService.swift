@@ -5,6 +5,23 @@ public struct LocalGitBranch: Equatable, Sendable {
     public let isCurrent: Bool
 }
 
+public struct LocalGitBranchDetails: Equatable, Sendable {
+    public let name: String
+    public let isCurrent: Bool
+    public let upstream: String?
+    public let aheadCount: Int?
+    public let behindCount: Int?
+    public let lastCommitDate: Date?
+    public let lastCommitAuthor: String?
+}
+
+public struct LocalGitBranchSnapshot: Equatable, Sendable {
+    public let branches: [LocalGitBranchDetails]
+    public let isDetachedHead: Bool
+    public let detachedCommitDate: Date?
+    public let detachedCommitAuthor: String?
+}
+
 public struct LocalGitWorktree: Equatable, Sendable {
     public let path: URL
     public let branch: String?
@@ -84,6 +101,35 @@ public struct LocalGitService {
         return names.map { name in
             LocalGitBranch(name: name, isCurrent: name == current)
         }
+    }
+
+    public func branchDetails(at repoURL: URL) throws -> LocalGitBranchSnapshot {
+        let git = LocalGitRunner()
+        let current = currentBranch(at: repoURL, git: git)
+        let isDetached = current == "detached"
+        let detachedInfo = isDetached ? lastCommitInfo(for: "HEAD", at: repoURL, git: git) : (nil, nil)
+        let raw = try git.run(["branch", "--format=%(refname:short)"], in: repoURL)
+        let names = raw.split(whereSeparator: \.isNewline).map { String($0) }
+        let branches = names.map { name in
+            let upstream = upstreamBranch(for: name, at: repoURL, git: git)
+            let (ahead, behind) = aheadBehind(for: name, upstream: upstream, at: repoURL, git: git)
+            let (date, author) = lastCommitInfo(for: name, at: repoURL, git: git)
+            return LocalGitBranchDetails(
+                name: name,
+                isCurrent: name == current,
+                upstream: upstream,
+                aheadCount: ahead,
+                behindCount: behind,
+                lastCommitDate: date,
+                lastCommitAuthor: author
+            )
+        }
+        return LocalGitBranchSnapshot(
+            branches: branches,
+            isDetachedHead: isDetached,
+            detachedCommitDate: detachedInfo.0,
+            detachedCommitAuthor: detachedInfo.1
+        )
     }
 
     public func worktrees(at repoURL: URL) throws -> [LocalGitWorktree] {
@@ -210,6 +256,14 @@ private func upstreamBranch(at repoURL: URL, git: LocalGitRunner) -> String? {
     return trimmed.isEmpty ? nil : trimmed
 }
 
+private func upstreamBranch(for branch: String, at repoURL: URL, git: LocalGitRunner) -> String? {
+    guard let raw = try? git.run(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "\(branch)@{u}"], in: repoURL) else {
+        return nil
+    }
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
+}
+
 private func aheadBehind(at repoURL: URL, git: LocalGitRunner) -> (ahead: Int?, behind: Int?) {
     guard let output = try? git.run(["rev-list", "--left-right", "--count", "@{u}...HEAD"], in: repoURL) else {
         return (nil, nil)
@@ -220,4 +274,38 @@ private func aheadBehind(at repoURL: URL, git: LocalGitRunner) -> (ahead: Int?, 
           let ahead = Int(parts[1])
     else { return (nil, nil) }
     return (ahead, behind)
+}
+
+private func aheadBehind(
+    for branch: String,
+    upstream: String?,
+    at repoURL: URL,
+    git: LocalGitRunner
+) -> (ahead: Int?, behind: Int?) {
+    guard let upstream else { return (nil, nil) }
+    guard let output = try? git.run(["rev-list", "--left-right", "--count", "\(upstream)...\(branch)"], in: repoURL) else {
+        return (nil, nil)
+    }
+    let parts = output.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "\n" })
+    guard parts.count >= 2,
+          let behind = Int(parts[0]),
+          let ahead = Int(parts[1])
+    else { return (nil, nil) }
+    return (ahead, behind)
+}
+
+private func lastCommitInfo(
+    for ref: String,
+    at repoURL: URL,
+    git: LocalGitRunner
+) -> (Date?, String?) {
+    guard let output = try? git.run(["log", "-1", "--format=%ct|%an", ref], in: repoURL) else {
+        return (nil, nil)
+    }
+    let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmed.isEmpty == false else { return (nil, nil) }
+    let parts = trimmed.split(separator: "|", maxSplits: 1).map(String.init)
+    guard let timestamp = parts.first.flatMap({ TimeInterval($0) }) else { return (nil, nil) }
+    let author = parts.count > 1 ? parts[1] : nil
+    return (Date(timeIntervalSince1970: timestamp), author)
 }

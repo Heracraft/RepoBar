@@ -229,7 +229,7 @@ extension StatusBarMenuBuilder {
         let submenu = NSMenu()
         submenu.autoenablesItems = false
         submenu.delegate = self.target
-        self.target.registerLocalBranchMenu(submenu, repoPath: local.path, fullName: fullName)
+        self.target.registerLocalBranchMenu(submenu, repoPath: local.path, fullName: fullName, localStatus: local)
         submenu.addItem(self.actionItem(
             title: "Create Branch…",
             action: #selector(self.target.createLocalBranch),
