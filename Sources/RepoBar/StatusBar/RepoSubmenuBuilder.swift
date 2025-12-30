@@ -144,15 +144,6 @@ struct RepoSubmenuBuilder {
             badgeText: cachedContributorCount.flatMap { $0 > 0 ? String($0) : nil }
         )))
 
-        if repo.activityURL != nil {
-            menu.addItem(self.menuBuilder.actionItem(
-                title: "Open Activity",
-                action: #selector(self.target.openActivity),
-                represented: repo.title,
-                systemImage: "clock.arrow.circlepath"
-            ))
-        }
-
         if settings.heatmap.display == .submenu, !repo.heatmap.isEmpty {
             let filtered = HeatmapFilter.filter(repo.heatmap, range: self.appState.session.heatmapRange)
             let heatmap = VStack(spacing: 4) {
@@ -192,12 +183,22 @@ struct RepoSubmenuBuilder {
 
         let events = Array(repo.activityEvents.prefix(AppLimits.RepoActivity.limit))
         let activityPreview = Array(events.prefix(AppLimits.RepoActivity.previewLimit))
-        if activityPreview.isEmpty == false {
+        let hasActivityLink = repo.activityURL != nil
+        if hasActivityLink || activityPreview.isEmpty == false {
             menu.addItem(.separator())
-            menu.addItem(self.menuBuilder.infoItem("Activity"))
-            activityPreview.forEach { menu.addItem(self.menuBuilder.activityMenuItem(for: $0)) }
-            if events.count > activityPreview.count {
-                menu.addItem(self.repoActivityMoreMenuItem(events: events))
+            if hasActivityLink {
+                menu.addItem(self.menuBuilder.actionItem(
+                    title: "Open Activity",
+                    action: #selector(self.target.openActivity),
+                    represented: repo.title,
+                    systemImage: "clock.arrow.circlepath"
+                ))
+            }
+            if activityPreview.isEmpty == false {
+                activityPreview.forEach { menu.addItem(self.menuBuilder.activityMenuItem(for: $0)) }
+                if events.count > activityPreview.count {
+                    menu.addItem(self.repoActivityMoreMenuItem(events: events))
+                }
             }
         }
 
