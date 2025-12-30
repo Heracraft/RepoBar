@@ -17,6 +17,7 @@ extension StatusBarMenuBuilder {
             showHeatmap: self.appState.session.settings.heatmap.display == .inline,
             heatmapRange: self.appState.session.heatmapRange,
             accentTone: self.appState.session.settings.appearance.accentTone,
+            showDirtyFiles: self.appState.session.settings.localProjects.showDirtyFilesInMenu,
             onOpen: { [weak target] in
                 target?.openRepoFromMenu(fullName: repo.title)
             }

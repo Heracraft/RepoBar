@@ -25,4 +25,7 @@ enum MenuStyle {
     static let heatmapInlineHeight: CGFloat = 48
     static let heatmapInlineBottomTrim: CGFloat = 2
     static let heatmapSubmenuHeight: CGFloat = 44
+
+    static let mainMenuDirtyFileLimit: Int = 3
+    static let submenuDirtyFileLimit: Int = 10
 }

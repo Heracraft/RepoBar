@@ -10,6 +10,7 @@ public struct LocalRepoStatus: Equatable, Sendable {
     public let behindCount: Int?
     public let syncState: LocalSyncState
     public let dirtyCounts: LocalDirtyCounts?
+    public let dirtyFiles: [String]
     public let worktreeName: String?
     public let upstreamBranch: String?
     public let lastFetchAt: Date?
@@ -24,6 +25,7 @@ public struct LocalRepoStatus: Equatable, Sendable {
         behindCount: Int?,
         syncState: LocalSyncState,
         dirtyCounts: LocalDirtyCounts? = nil,
+        dirtyFiles: [String] = [],
         worktreeName: String? = nil,
         upstreamBranch: String? = nil,
         lastFetchAt: Date? = nil
@@ -37,6 +39,7 @@ public struct LocalRepoStatus: Equatable, Sendable {
         self.behindCount = behindCount
         self.syncState = syncState
         self.dirtyCounts = dirtyCounts
+        self.dirtyFiles = dirtyFiles
         self.worktreeName = worktreeName
         self.upstreamBranch = upstreamBranch
         self.lastFetchAt = lastFetchAt
@@ -83,6 +86,7 @@ public struct LocalRepoStatus: Equatable, Sendable {
             behindCount: self.behindCount,
             syncState: self.syncState,
             dirtyCounts: self.dirtyCounts,
+            dirtyFiles: self.dirtyFiles,
             worktreeName: self.worktreeName,
             upstreamBranch: self.upstreamBranch,
             lastFetchAt: date

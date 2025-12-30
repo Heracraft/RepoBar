@@ -29,6 +29,7 @@ RepoBar surfaces local git state inside each repo submenu and exposes a set of a
 - Upstream tracking branch (when configured).
 - Dirty summary (`+ / - / ~` counts).
 - Last fetch age (when known).
+- Dirty file list (up to 10 entries).
 
 ## Actions
 - **Sync**: `git fetch --prune` → `git pull --rebase --autostash` if behind → `git push` if ahead.

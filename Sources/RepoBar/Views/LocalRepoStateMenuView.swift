@@ -20,6 +20,17 @@ struct LocalRepoStateMenuView: View {
                     .font(.caption2)
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
             }
+            if self.status.dirtyFiles.isEmpty == false {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(self.status.dirtyFiles.prefix(MenuStyle.submenuDirtyFileLimit)), id: \.self) { file in
+                        Text("- \(file)")
+                            .font(.caption2)
+                            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
             HStack(spacing: 12) {
                 self.actionButton(
                     title: "Sync",

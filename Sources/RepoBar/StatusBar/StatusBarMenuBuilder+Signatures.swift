@@ -51,6 +51,7 @@ struct MenuSettingsSignature: Hashable {
     let displayLimit: Int
     let showForks: Bool
     let showArchived: Bool
+    let showDirtyFilesInMenu: Bool
     let menuSortKey: RepositorySortKey
     let pinned: [String]
     let hidden: [String]
@@ -65,6 +66,7 @@ struct MenuSettingsSignature: Hashable {
         self.displayLimit = settings.repoList.displayLimit
         self.showForks = settings.repoList.showForks
         self.showArchived = settings.repoList.showArchived
+        self.showDirtyFilesInMenu = settings.localProjects.showDirtyFilesInMenu
         self.menuSortKey = settings.repoList.menuSortKey
         self.pinned = settings.repoList.pinnedRepositories
         self.hidden = settings.repoList.hiddenRepositories
@@ -98,6 +100,7 @@ struct RepoSignature: Hashable {
     let localBranch: String?
     let localSyncState: LocalSyncState?
     let localDirtySummary: String?
+    let localDirtyFilesDigest: Int?
 
     static func digest(for repos: [RepositoryDisplayModel]) -> Int {
         var hasher = Hasher()
@@ -125,6 +128,15 @@ struct RepoSignature: Hashable {
         self.localBranch = repo.localStatus?.branch
         self.localSyncState = repo.localStatus?.syncState
         self.localDirtySummary = repo.localStatus?.dirtyCounts?.summary
+        self.localDirtyFilesDigest = repo.localStatus.map { RepoSignature.digest(files: $0.dirtyFiles) }
+    }
+
+    static func digest(files: [String]) -> Int {
+        var hasher = Hasher()
+        for file in files {
+            hasher.combine(file)
+        }
+        return hasher.finalize()
     }
 }
 
@@ -152,6 +164,7 @@ struct RepoSubmenuSignature: Hashable {
     let localWorktreeName: String?
     let localSyncState: LocalSyncState?
     let localDirtySummary: String?
+    let localDirtyFilesDigest: Int?
     let localUpstream: String?
     let localLastFetchAt: TimeInterval?
     let trafficVisitors: Int?
@@ -181,6 +194,7 @@ struct RepoSubmenuSignature: Hashable {
         self.localWorktreeName = repo.localStatus?.worktreeName
         self.localSyncState = repo.localStatus?.syncState
         self.localDirtySummary = repo.localStatus?.dirtyCounts?.summary
+        self.localDirtyFilesDigest = repo.localStatus.map { RepoSignature.digest(files: $0.dirtyFiles) }
         self.localUpstream = repo.localStatus?.upstreamBranch
         self.localLastFetchAt = repo.localStatus?.lastFetchAt?.timeIntervalSinceReferenceDate
         self.trafficVisitors = repo.trafficVisitors

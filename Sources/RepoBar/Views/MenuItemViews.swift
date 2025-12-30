@@ -9,6 +9,7 @@ struct RepoMenuCardView: View {
     let showHeatmap: Bool
     let heatmapRange: HeatmapRange
     let accentTone: AccentTone
+    let showDirtyFiles: Bool
     let onOpen: (() -> Void)?
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
@@ -17,6 +18,7 @@ struct RepoMenuCardView: View {
             self.header
             self.stats
             self.localStatusRow
+            self.localDirtyFiles
             self.activity
             self.errorOrLimit
             self.heatmap
@@ -85,6 +87,24 @@ struct RepoMenuCardView: View {
                     .font(.caption2)
             }
             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+        }
+    }
+
+    @ViewBuilder
+    private var localDirtyFiles: some View {
+        if self.showDirtyFiles,
+           let local = self.repo.localStatus,
+           local.dirtyFiles.isEmpty == false {
+            let files = local.dirtyFiles.prefix(MenuStyle.mainMenuDirtyFileLimit)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(files), id: \.self) { file in
+                    Text("- \(file)")
+                        .font(.caption2)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
         }
     }
 

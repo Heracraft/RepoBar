@@ -46,6 +46,7 @@ public struct LocalProjectsSettings: Equatable, Codable {
     public var rootPath: String?
     public var rootBookmarkData: Data?
     public var autoSyncEnabled: Bool = true
+    public var showDirtyFilesInMenu: Bool = false
     public var fetchInterval: LocalProjectsRefreshInterval = .fiveMinutes
     public var preferredTerminal: String?
     public var ghosttyOpenMode: GhosttyOpenMode = .tab

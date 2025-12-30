@@ -373,6 +373,13 @@ struct AdvancedSettingsView: View {
                         self.appState.requestRefresh(cancelInFlight: true)
                     }
 
+                Toggle("Show dirty files in menu", isOn: self.$session.settings.localProjects.showDirtyFilesInMenu)
+                    .disabled(self.session.settings.localProjects.rootPath == nil)
+                    .onChange(of: self.session.settings.localProjects.showDirtyFilesInMenu) { _, _ in
+                        self.appState.persistSettings()
+                        NotificationCenter.default.post(name: .menuFiltersDidChange, object: nil)
+                    }
+
                 HStack {
                     Text("Fetch interval")
                     Spacer()

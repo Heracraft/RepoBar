@@ -117,6 +117,7 @@ public struct LocalProjectsService {
             let statusOutput = statusOutput(at: repoURL, git: git)
             let isClean = statusOutput?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
             let dirtyCounts = statusOutput.flatMap(parseDirtyCounts(from:))
+            let dirtyFiles = statusOutput.map { parseDirtyFiles(from: $0, limit: 10) } ?? []
             let (ahead, behind) = aheadBehind(at: repoURL, git: git)
             let syncState = LocalSyncState.resolve(isClean: isClean, ahead: ahead, behind: behind)
             let remote = remoteInfo(at: repoURL, git: git)
@@ -134,6 +135,7 @@ public struct LocalProjectsService {
                 behindCount: behind,
                 syncState: syncState,
                 dirtyCounts: dirtyCounts,
+                dirtyFiles: dirtyFiles,
                 worktreeName: worktreeName,
                 upstreamBranch: upstreamBranch
             )
@@ -375,6 +377,30 @@ private func parseDirtyCounts(from output: String) -> LocalDirtyCounts? {
 
     if added.isEmpty, modified.isEmpty, deleted.isEmpty { return nil }
     return LocalDirtyCounts(added: added.count, modified: modified.count, deleted: deleted.count)
+}
+
+private func parseDirtyFiles(from output: String, limit: Int) -> [String] {
+    guard limit > 0 else { return [] }
+    var files: [String] = []
+    files.reserveCapacity(limit)
+
+    for rawLine in output.split(whereSeparator: \.isNewline) {
+        guard files.count < limit else { break }
+        let line = String(rawLine)
+        guard line.count >= 3 else { continue }
+        let status = String(line.prefix(2))
+        var path = String(line.dropFirst(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+        if let arrowRange = path.range(of: " -> ") {
+            path = String(path[arrowRange.upperBound...])
+        }
+        guard path.isEmpty == false else { continue }
+        if status == "??" || status.contains("M") || status.contains("A") || status.contains("D")
+            || status.contains("R") || status.contains("C") || status.contains("T") || status.contains("U") {
+            files.append(path)
+        }
+    }
+
+    return files
 }
 
 private func aheadBehind(at repoURL: URL, git: GitRunner) -> (ahead: Int?, behind: Int?) {

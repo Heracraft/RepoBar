@@ -237,6 +237,34 @@ struct LocalProjectsServiceTests {
         #expect(worktreeStatus?.worktreeName != nil)
         #expect(worktreeStatus?.branch == "feature")
     }
+
+    @Test
+    func snapshot_limitsDirtyFiles() async throws {
+        let root = try makeTempDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let repo = root.appendingPathComponent("repo", isDirectory: true)
+        try FileManager.default.createDirectory(at: repo, withIntermediateDirectories: true)
+        try initializeRepo(at: repo, origin: "git@github.com:foo/repo.git")
+
+        for index in 0..<12 {
+            try writeFile(repo.appendingPathComponent("file-\(index).txt"), contents: "\(index)\n")
+        }
+
+        let snapshot = await LocalProjectsService().snapshot(
+            rootPath: root.path,
+            maxDepth: 1,
+            autoSyncEnabled: false,
+            concurrencyLimit: 1
+        )
+
+        let status = snapshot.statuses.first(where: { $0.name == "repo" })
+        #expect(status != nil)
+        #expect(status?.dirtyFiles.count == 10)
+        let dirtySet = Set(status?.dirtyFiles ?? [])
+        let created = Set((0..<12).map { "file-\($0).txt" })
+        #expect(dirtySet.isSubset(of: created))
+    }
 }
 
 private func makeTempDirectory() throws -> URL {
