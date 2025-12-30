@@ -20,6 +20,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
 
     private let recentListLimit = 20
     private let recentListCacheTTL: TimeInterval = 90
+    private let recentListLoadTimeout: TimeInterval = 12
     private let issueLabelChipLimit = 6
     private let recentIssuesCache = RecentListCache<RepoIssueSummary>()
     private let recentPullRequestsCache = RecentListCache<RepoPullRequestSummary>()
@@ -1109,7 +1110,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     try await fetch(github, owner, name, limit)
                 }
                 defer { config.cache.clearInflight(for: key) }
-                let items = try await task.value
+                let items = try await self.awaitWithTimeout(self.recentListLoadTimeout, task: task)
                 config.cache.store(items, for: key, fetchedAt: Date())
                 return config.wrap(items)
             },
@@ -1179,6 +1180,16 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                     descriptor.render(menu, header.fullName, items)
                 })
             )
+        } catch is RecentListTimeoutError {
+            if stale == nil {
+                self.populateRecentListMenu(
+                    menu,
+                    header: header,
+                    actions: actions,
+                    extras: staleExtras,
+                    content: .message("Timed out")
+                )
+            }
         } catch {
             if stale == nil {
                 self.populateRecentListMenu(
@@ -1191,6 +1202,33 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             }
         }
         menu.update()
+    }
+
+    private struct RecentListTimeoutError: Error {}
+
+    private func awaitWithTimeout<T>(_ seconds: TimeInterval, task: Task<T, Error>) async throws -> T {
+        let nanoseconds = UInt64(max(0, seconds) * 1_000_000_000)
+        do {
+            return try await withThrowingTaskGroup(of: T.self) { group in
+                group.addTask {
+                    try await task.value
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: nanoseconds)
+                    throw RecentListTimeoutError()
+                }
+                guard let value = try await group.next() else {
+                    throw RecentListTimeoutError()
+                }
+                group.cancelAll()
+                return value
+            }
+        } catch {
+            if error is RecentListTimeoutError {
+                task.cancel()
+            }
+            throw error
+        }
     }
 
     private func prefetchRecentLists(fullNames: Set<String>) {
