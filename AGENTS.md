@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+## Project Overview
+- RepoBar is a macOS menubar app (SwiftUI + AppKit NSMenu) for GitHub repo status, activity, and local project state.
+- Build system: SwiftPM wrapped by `pnpm` scripts; app bundling/signing via `Scripts/*.sh`.
+- Testing: Swift Testing (`swift test`) via `pnpm test`/`pnpm check`.
+
 ## Project Structure & Module Organization
 - `Sources/RepoBar/` holds app code: `App` (entry), `StatusBar` (menus/windows), `Auth` (PKCE + TokenStore), `API` (GitHub GraphQL/REST clients), `Models`, `Views`, `Settings`, `Support`; generated GraphQL types, if produced, live under `API/Generated` (do not hand edit).
 - `Tests/RepoBarTests/` contains Swift Testing suites; keep new coverage close to the code under test.
