@@ -38,7 +38,7 @@ final class OAuthCoordinator {
     func refreshIfNeeded() async throws -> OAuthTokens? {
         let signpost = self.signposter.beginInterval("refreshIfNeeded")
         defer { self.signposter.endInterval("refreshIfNeeded", signpost) }
-        try await self.tokenRefresher.refreshIfNeeded(host: self.lastHost)
+        return try await self.tokenRefresher.refreshIfNeeded(host: self.lastHost)
     }
 
     // MARK: - Installation token
