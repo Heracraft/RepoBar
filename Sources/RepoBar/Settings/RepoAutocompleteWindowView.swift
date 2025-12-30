@@ -194,7 +194,8 @@ private struct RepoAutocompleteListView: View {
             .frame(maxHeight: 220)
             .onChange(of: self.selectedIndex) { _, newIndex in
                 if newIndex >= 0, newIndex < self.suggestions.count, self.keyboardNavigating,
-                   !self.mouseHoverTriggered {
+                   !self.mouseHoverTriggered
+                {
                     withAnimation(.easeInOut(duration: 0.1)) {
                         proxy.scrollTo(newIndex, anchor: .center)
                     }
