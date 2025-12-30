@@ -21,7 +21,7 @@ struct RepoSubmenuBuilder {
 
         let openRow = RecentListSubmenuRowView(
             title: "Open \(repo.title) in GitHub",
-            systemImage: "folder",
+            systemImage: "arrow.up.right.square",
             badgeText: nil,
             onOpen: { [weak target] in
                 target?.openRepoFromMenu(fullName: repo.title)
@@ -30,7 +30,6 @@ struct RepoSubmenuBuilder {
         menu.addItem(self.menuBuilder.viewItem(for: openRow, enabled: true, highlightable: true))
 
         if let local = repo.localStatus {
-            menu.addItem(.separator())
             menu.addItem(self.menuBuilder.actionItem(
                 title: "Open in Finder",
                 action: #selector(StatusBarMenuManager.openLocalFinder(_:)),
