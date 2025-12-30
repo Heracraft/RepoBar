@@ -87,12 +87,14 @@ struct CLIOutputTests {
         let now = Date(timeIntervalSinceReferenceDate: 99999)
         let withRelease = tableLines(
             [row],
-            useColor: false,
-            includeURL: false,
-            includeRelease: true,
-            includeEvent: false,
-            baseHost: baseHost,
-            now: now
+            context: RepoTableContext(
+                useColor: false,
+                includeURL: false,
+                includeRelease: true,
+                includeEvent: false,
+                baseHost: baseHost,
+                now: now
+            )
         )
         .joined(separator: "\n")
         #expect(withRelease.contains("REL"))
@@ -102,12 +104,14 @@ struct CLIOutputTests {
 
         let withoutRelease = tableLines(
             [row],
-            useColor: false,
-            includeURL: false,
-            includeRelease: false,
-            includeEvent: false,
-            baseHost: baseHost,
-            now: now
+            context: RepoTableContext(
+                useColor: false,
+                includeURL: false,
+                includeRelease: false,
+                includeEvent: false,
+                baseHost: baseHost,
+                now: now
+            )
         )
         .joined(separator: "\n")
         #expect(withoutRelease.contains("REL") == false)
@@ -172,11 +176,13 @@ struct CLIOutputTests {
 
         let output = tableLines(
             [row],
-            useColor: false,
-            includeURL: false,
-            includeRelease: false,
-            includeEvent: false,
-            baseHost: baseHost
+            context: RepoTableContext(
+                useColor: false,
+                includeURL: false,
+                includeRelease: false,
+                includeEvent: false,
+                baseHost: baseHost
+            )
         )
         .joined(separator: "\n")
         #expect(output.contains("EVENT") == false)
@@ -208,11 +214,13 @@ struct CLIOutputTests {
 
         let output = tableLines(
             [row],
-            useColor: false,
-            includeURL: false,
-            includeRelease: false,
-            includeEvent: true,
-            baseHost: baseHost
+            context: RepoTableContext(
+                useColor: false,
+                includeURL: false,
+                includeRelease: false,
+                includeEvent: true,
+                baseHost: baseHost
+            )
         )
         .joined(separator: "\n")
         #expect(output.contains("EVENT"))

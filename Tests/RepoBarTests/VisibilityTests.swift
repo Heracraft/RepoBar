@@ -12,11 +12,13 @@ struct VisibilityTests {
         ]
         let visible = AppState.selectVisible(
             all: repos,
-            pinned: [],
-            hidden: Set(["me/b"]),
-            includeForks: false,
-            includeArchived: false,
-            limit: 5
+            options: AppState.VisibleSelectionOptions(
+                pinned: [],
+                hidden: Set(["me/b"]),
+                includeForks: false,
+                includeArchived: false,
+                limit: 5
+            )
         )
         #expect(visible.count == 1)
         #expect(visible.first?.fullName == "me/a")
@@ -30,11 +32,13 @@ struct VisibilityTests {
         ]
         let visible = AppState.selectVisible(
             all: repos,
-            pinned: ["me/a"],
-            hidden: [],
-            includeForks: false,
-            includeArchived: false,
-            limit: 5
+            options: AppState.VisibleSelectionOptions(
+                pinned: ["me/a"],
+                hidden: [],
+                includeForks: false,
+                includeArchived: false,
+                limit: 5
+            )
         )
         #expect(visible.first?.fullName == "me/a")
     }
@@ -46,11 +50,13 @@ struct VisibilityTests {
         }
         let visible = AppState.selectVisible(
             all: repos,
-            pinned: [],
-            hidden: Set(["me/r1", "me/r2", "me/r3"]),
-            includeForks: false,
-            includeArchived: false,
-            limit: 3
+            options: AppState.VisibleSelectionOptions(
+                pinned: [],
+                hidden: Set(["me/r1", "me/r2", "me/r3"]),
+                includeForks: false,
+                includeArchived: false,
+                limit: 3
+            )
         )
         #expect(visible.count == 3)
         #expect(!visible.contains(where: { $0.fullName == "me/r1" }))

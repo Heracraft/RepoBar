@@ -38,14 +38,16 @@ struct ForkFilteringTests {
 
         let visible = AppState.selectVisible(
             all: [otherFork, normal, pinnedFork],
-            pinned: [pinnedFork.fullName],
-            hidden: [],
-            includeForks: false,
-            includeArchived: false,
-            limit: 10
+            options: AppState.VisibleSelectionOptions(
+                pinned: [pinnedFork.fullName],
+                hidden: [],
+                includeForks: false,
+                includeArchived: false,
+                limit: 10
+            )
         )
 
-        #expect(visible.map(\.fullName) == [pinnedFork.fullName, normal.fullName])
+        #expect(visible.map { $0.fullName } == [pinnedFork.fullName, normal.fullName])
     }
 }
 

@@ -38,14 +38,16 @@ struct ArchivedFilteringTests {
 
         let visible = AppState.selectVisible(
             all: [otherArchived, normal, pinnedArchived],
-            pinned: [pinnedArchived.fullName],
-            hidden: [],
-            includeForks: true,
-            includeArchived: false,
-            limit: 10
+            options: AppState.VisibleSelectionOptions(
+                pinned: [pinnedArchived.fullName],
+                hidden: [],
+                includeForks: true,
+                includeArchived: false,
+                limit: 10
+            )
         )
 
-        #expect(visible.map(\.fullName) == [pinnedArchived.fullName, normal.fullName])
+        #expect(visible.map { $0.fullName } == [pinnedArchived.fullName, normal.fullName])
     }
 }
 
