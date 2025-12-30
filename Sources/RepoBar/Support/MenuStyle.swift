@@ -23,5 +23,6 @@ enum MenuStyle {
     static let bannerVerticalPadding: CGFloat = 4
 
     static let heatmapInlineHeight: CGFloat = 48
+    static let heatmapInlineBottomTrim: CGFloat = 2
     static let heatmapSubmenuHeight: CGFloat = 44
 }
