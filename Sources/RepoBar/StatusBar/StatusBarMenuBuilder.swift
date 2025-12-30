@@ -10,6 +10,7 @@ final class StatusBarMenuBuilder {
     private let appState: AppState
     private unowned let target: StatusBarMenuManager
     private let signposter = OSSignposter(subsystem: "com.steipete.repobar", category: "menu")
+    private var repoMenuItemCache: [String: NSMenuItem] = [:]
 
     init(appState: AppState, target: StatusBarMenuManager) {
         self.appState = appState
@@ -135,26 +136,18 @@ final class StatusBarMenuBuilder {
                 .padding(.vertical, MenuStyle.sectionVerticalPadding)
             menu.addItem(self.viewItem(for: emptyState, enabled: false))
         } else {
+            var usedRepoKeys: Set<String> = []
             for (index, repo) in repos.enumerated() {
                 let isPinned = settings.repoList.pinnedRepositories.contains(repo.title)
-                let card = RepoMenuCardView(
-                    repo: repo,
-                    isPinned: isPinned,
-                    showHeatmap: settings.heatmap.display == .inline,
-                    heatmapRange: session.heatmapRange,
-                    accentTone: settings.appearance.accentTone,
-                    onOpen: { [weak target] in
-                        target?.openRepoFromMenu(fullName: repo.title)
-                    }
-                )
-                let submenu = self.makeRepoSubmenu(for: repo, isPinned: isPinned)
-                let item = self.viewItem(for: card, enabled: true, highlightable: true, submenu: submenu)
+                let item = self.repoMenuItem(for: repo, isPinned: isPinned)
                 item.representedObject = repo.title
                 menu.addItem(item)
                 if index < repos.count - 1 {
                     menu.addItem(self.repoCardSeparator())
                 }
+                usedRepoKeys.insert(repo.title)
             }
+            self.repoMenuItemCache = self.repoMenuItemCache.filter { usedRepoKeys.contains($0.key) }
         }
 
         menu.addItem(self.paddedSeparator())
@@ -468,6 +461,31 @@ final class StatusBarMenuBuilder {
 
     private func repoCardSeparator() -> NSMenuItem {
         self.viewItem(for: RepoCardSeparatorRowView(), enabled: false)
+    }
+
+    private func repoMenuItem(for repo: RepositoryDisplayModel, isPinned: Bool) -> NSMenuItem {
+        let card = RepoMenuCardView(
+            repo: repo,
+            isPinned: isPinned,
+            showHeatmap: self.appState.session.settings.heatmap.display == .inline,
+            heatmapRange: self.appState.session.heatmapRange,
+            accentTone: self.appState.session.settings.appearance.accentTone,
+            onOpen: { [weak target] in
+                target?.openRepoFromMenu(fullName: repo.title)
+            }
+        )
+        let submenu = self.makeRepoSubmenu(for: repo, isPinned: isPinned)
+        if let cached = self.repoMenuItemCache[repo.title], let view = cached.view as? MenuItemHostingView {
+            view.updateHighlightableRootView(AnyView(card), showsSubmenuIndicator: true)
+            cached.isEnabled = true
+            cached.submenu = submenu
+            cached.target = self.target
+            cached.action = #selector(self.target.menuItemNoOp(_:))
+            return cached
+        }
+        let item = self.viewItem(for: card, enabled: true, highlightable: true, submenu: submenu)
+        self.repoMenuItemCache[repo.title] = item
+        return item
     }
 
     private func repoActivityItem(for event: ActivityEvent) -> NSMenuItem {

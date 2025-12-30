@@ -138,6 +138,25 @@ final class MenuItemHostingView: NSView, MenuItemMeasuring, MenuItemHighlighting
         return rounded
     }
 
+    func updateRootView(_ rootView: AnyView) {
+        self.hostingController.rootView = rootView
+        self.invalidateIntrinsicContentSize()
+    }
+
+    func updateHighlightableRootView(_ content: AnyView, showsSubmenuIndicator: Bool) {
+        guard let highlightState = self.highlightState else {
+            self.updateRootView(content)
+            return
+        }
+        let wrapped = MenuItemContainerView(
+            highlightState: highlightState,
+            showsSubmenuIndicator: showsSubmenuIndicator
+        ) {
+            content
+        }
+        self.updateRootView(AnyView(wrapped))
+    }
+
     private func configureHostingView() {
         self.hostingController.view.translatesAutoresizingMaskIntoConstraints = true
         self.hostingController.view.autoresizingMask = [.width, .height]
