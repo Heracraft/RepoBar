@@ -11,7 +11,7 @@ struct RecentListMenuTests {
         let mainMenu = NSMenu()
         let submenu = NSMenu()
 
-        manager.mainMenu = mainMenu
+        manager.setMainMenuForTesting(mainMenu)
         manager.registerRecentListMenu(
             submenu,
             context: RepoRecentMenuContext(fullName: "owner/repo", kind: .issues)

@@ -1,5 +1,5 @@
-import Testing
 @testable import RepoBar
+import Testing
 
 @Suite("AsyncTimeout")
 struct AsyncTimeoutTests {
@@ -20,8 +20,7 @@ struct AsyncTimeoutTests {
             try await withTaskCancellationHandler {
                 try await Task.sleep(nanoseconds: 2_000_000_000)
                 return 1
-            } onCancel: {
-            }
+            } onCancel: {}
         }
 
         do {
