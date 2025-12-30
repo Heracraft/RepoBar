@@ -36,6 +36,7 @@ RepoBar surfaces local git state inside each repo submenu and exposes a set of a
 - **Rebase**: `git fetch --prune` → `git rebase --autostash @{u}` (requires clean working tree).
 - **Reset**: `git fetch --prune` → `git reset --hard @{u}` (destructive; confirmation required).
 - **Finder / Terminal**: open local path using the preferred terminal.
+- **Checkout**: `git clone <host>/<owner>/<name>.git` into the local projects folder (opens Finder on success).
 
 ## Branch + Worktree switching
 - **Branch switch**: `git switch <branch>`.

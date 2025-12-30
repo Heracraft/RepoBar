@@ -30,6 +30,7 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
     private let recentContributorsCache = RecentListCache<RepoContributorSummary>()
     private var localBranchMenus: [ObjectIdentifier: LocalGitMenuEntry] = [:]
     private var localWorktreeMenus: [ObjectIdentifier: LocalGitMenuEntry] = [:]
+    private weak var checkoutProgressWindow: NSWindow?
 
     init(appState: AppState) {
         self.appState = appState
@@ -307,6 +308,65 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
             notifyOnSuccess: false,
             action: .createWorktree(repoURL, worktreeURL, branchName)
         )
+    }
+
+    @objc func checkoutRepoFromMenu(_ sender: NSMenuItem) {
+        guard let fullName = self.repoFullName(from: sender) else { return }
+        let settings = self.appState.session.settings.localProjects
+        guard let rootPath = settings.rootPath, rootPath.isEmpty == false else {
+            let alert = NSAlert()
+            alert.messageText = "Set a local projects folder"
+            alert.informativeText = "Choose a Local Projects folder in Settings to enable checkout."
+            alert.addButton(withTitle: "Open Settings")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() == .alertFirstButtonReturn {
+                self.openPreferences()
+            }
+            return
+        }
+
+        guard let remoteURL = self.cloneURL(for: fullName) else {
+            self.presentAlert(title: "Checkout failed", message: "Invalid repository URL.")
+            return
+        }
+
+        let repoName = fullName.split(separator: "/").last.map(String.init) ?? fullName
+        let destination = URL(fileURLWithPath: PathFormatter.expandTilde(rootPath), isDirectory: true)
+            .appendingPathComponent(repoName, isDirectory: true)
+
+        if FileManager.default.fileExists(atPath: destination.path) {
+            self.presentAlert(title: "Folder exists", message: "\(destination.path) already exists.")
+            return
+        }
+
+        self.showCheckoutProgress(fullName: fullName, destination: destination)
+        let rootBookmark = settings.rootBookmarkData
+        Task.detached { [weak self] in
+            guard let self else { return }
+            let result = Result {
+                var capturedError: Error?
+                SecurityScopedBookmark.withAccess(to: destination, rootBookmarkData: rootBookmark) {
+                    do {
+                        try LocalGitService().cloneRepo(remoteURL: remoteURL, to: destination)
+                    } catch {
+                        capturedError = error
+                    }
+                }
+                if let capturedError { throw capturedError }
+            }
+            await MainActor.run {
+                self.closeCheckoutProgress()
+                switch result {
+                case .success:
+                    self.appState.session.settings.localProjects.preferredLocalPathsByFullName[fullName] = destination.path
+                    self.appState.persistSettings()
+                    self.appState.refreshLocalProjects()
+                    self.openLocalFinder(destination)
+                case let .failure(error):
+                    self.presentAlert(title: "Checkout failed", message: error.userFacingMessage)
+                }
+            }
+        }
     }
 
     @objc func copyRepoName(_ sender: NSMenuItem) {
@@ -645,6 +705,42 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return nil }
         return field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func cloneURL(for fullName: String) -> URL? {
+        let host = self.appState.session.settings.githubHost
+        var url = host.appendingPathComponent(fullName)
+        url.appendPathExtension("git")
+        return url
+    }
+
+    private func showCheckoutProgress(fullName: String, destination: URL) {
+        self.closeCheckoutProgress()
+        let alert = NSAlert()
+        alert.messageText = "Checking out \(fullName)"
+        alert.informativeText = PathFormatter.displayString(destination.path)
+
+        let indicator = NSProgressIndicator()
+        indicator.style = .spinning
+        indicator.controlSize = .small
+        indicator.startAnimation(nil)
+
+        let stack = NSStackView(views: [indicator])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 8
+        alert.accessoryView = stack
+
+        let window = alert.window
+        window.level = .floating
+        self.checkoutProgressWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func closeCheckoutProgress() {
+        self.checkoutProgressWindow?.close()
+        self.checkoutProgressWindow = nil
     }
 
     private func confirmHardReset(for status: LocalRepoStatus) -> Bool {

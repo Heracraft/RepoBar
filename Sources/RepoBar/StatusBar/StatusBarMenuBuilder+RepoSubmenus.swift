@@ -36,6 +36,16 @@ extension StatusBarMenuBuilder {
             menu.addItem(self.localBranchesSubmenuItem(for: local, fullName: repo.title))
             menu.addItem(self.localWorktreesSubmenuItem(for: local, fullName: repo.title))
             menu.addItem(.separator())
+        } else {
+            menu.addItem(.separator())
+            menu.addItem(self.infoItem("Local State"))
+            menu.addItem(self.actionItem(
+                title: "Checkout Repo",
+                action: #selector(self.target.checkoutRepoFromMenu),
+                represented: repo.title,
+                systemImage: "arrow.down.to.line"
+            ))
+            menu.addItem(.separator())
         }
 
         menu.addItem(self.recentListSubmenuItem(RecentListConfig(

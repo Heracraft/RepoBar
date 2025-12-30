@@ -139,6 +139,12 @@ public struct LocalGitService {
         let git = LocalGitRunner()
         _ = try git.run(["worktree", "add", path.path, "-b", branch], in: repoURL)
     }
+
+    public func cloneRepo(remoteURL: URL, to destination: URL) throws {
+        let git = LocalGitRunner()
+        let parent = destination.deletingLastPathComponent()
+        _ = try git.run(["clone", remoteURL.absoluteString, destination.path], in: parent)
+    }
 }
 
 private struct LocalGitRunner: Sendable {
