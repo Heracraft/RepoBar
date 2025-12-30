@@ -94,6 +94,7 @@ public struct RepoReleaseSummary: Sendable, Hashable {
     public let authorAvatarURL: URL?
     public let assetCount: Int
     public let downloadCount: Int
+    public let assets: [RepoReleaseAssetSummary]
 
     public init(
         name: String,
@@ -104,7 +105,8 @@ public struct RepoReleaseSummary: Sendable, Hashable {
         authorLogin: String?,
         authorAvatarURL: URL?,
         assetCount: Int,
-        downloadCount: Int
+        downloadCount: Int,
+        assets: [RepoReleaseAssetSummary]
     ) {
         self.name = name
         self.tag = tag
@@ -115,6 +117,7 @@ public struct RepoReleaseSummary: Sendable, Hashable {
         self.authorAvatarURL = authorAvatarURL
         self.assetCount = assetCount
         self.downloadCount = downloadCount
+        self.assets = assets
     }
 }
 
@@ -152,5 +155,83 @@ public struct RepoWorkflowRunSummary: Sendable, Hashable {
         self.actorLogin = actorLogin
         self.actorAvatarURL = actorAvatarURL
         self.runNumber = runNumber
+    }
+}
+
+public struct RepoDiscussionSummary: Sendable, Hashable {
+    public let title: String
+    public let url: URL
+    public let updatedAt: Date
+    public let authorLogin: String?
+    public let authorAvatarURL: URL?
+    public let commentCount: Int
+    public let categoryName: String?
+
+    public init(
+        title: String,
+        url: URL,
+        updatedAt: Date,
+        authorLogin: String?,
+        authorAvatarURL: URL?,
+        commentCount: Int,
+        categoryName: String?
+    ) {
+        self.title = title
+        self.url = url
+        self.updatedAt = updatedAt
+        self.authorLogin = authorLogin
+        self.authorAvatarURL = authorAvatarURL
+        self.commentCount = commentCount
+        self.categoryName = categoryName
+    }
+}
+
+public struct RepoTagSummary: Sendable, Hashable {
+    public let name: String
+    public let commitSHA: String
+
+    public init(name: String, commitSHA: String) {
+        self.name = name
+        self.commitSHA = commitSHA
+    }
+}
+
+public struct RepoBranchSummary: Sendable, Hashable {
+    public let name: String
+    public let commitSHA: String
+    public let isProtected: Bool
+
+    public init(name: String, commitSHA: String, isProtected: Bool) {
+        self.name = name
+        self.commitSHA = commitSHA
+        self.isProtected = isProtected
+    }
+}
+
+public struct RepoContributorSummary: Sendable, Hashable {
+    public let login: String
+    public let avatarURL: URL?
+    public let url: URL?
+    public let contributions: Int
+
+    public init(login: String, avatarURL: URL?, url: URL?, contributions: Int) {
+        self.login = login
+        self.avatarURL = avatarURL
+        self.url = url
+        self.contributions = contributions
+    }
+}
+
+public struct RepoReleaseAssetSummary: Sendable, Hashable {
+    public let name: String
+    public let sizeBytes: Int?
+    public let downloadCount: Int
+    public let url: URL
+
+    public init(name: String, sizeBytes: Int?, downloadCount: Int, url: URL) {
+        self.name = name
+        self.sizeBytes = sizeBytes
+        self.downloadCount = downloadCount
+        self.url = url
     }
 }

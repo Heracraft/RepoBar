@@ -780,6 +780,58 @@ public actor GitHubClient {
         return try Self.decodeRecentWorkflowRuns(from: data)
     }
 
+    public func recentDiscussions(owner: String, name: String, limit: Int = 20) async throws -> [RepoDiscussionSummary] {
+        let token = try await validAccessToken()
+        let limit = max(1, min(limit, 100))
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/discussions"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "per_page", value: "\(limit)"),
+            URLQueryItem(name: "sort", value: "updated"),
+            URLQueryItem(name: "direction", value: "desc")
+        ]
+        let (data, _) = try await authorizedGet(url: components.url!, token: token)
+        return try Self.decodeRecentDiscussions(from: data)
+    }
+
+    public func recentTags(owner: String, name: String, limit: Int = 20) async throws -> [RepoTagSummary] {
+        let token = try await validAccessToken()
+        let limit = max(1, min(limit, 100))
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/tags"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [URLQueryItem(name: "per_page", value: "\(limit)")]
+        let (data, _) = try await authorizedGet(url: components.url!, token: token)
+        return try Self.decodeRecentTags(from: data)
+    }
+
+    public func recentBranches(owner: String, name: String, limit: Int = 20) async throws -> [RepoBranchSummary] {
+        let token = try await validAccessToken()
+        let limit = max(1, min(limit, 100))
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/branches"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [URLQueryItem(name: "per_page", value: "\(limit)")]
+        let (data, _) = try await authorizedGet(url: components.url!, token: token)
+        return try Self.decodeRecentBranches(from: data)
+    }
+
+    public func topContributors(owner: String, name: String, limit: Int = 20) async throws -> [RepoContributorSummary] {
+        let token = try await validAccessToken()
+        let limit = max(1, min(limit, 100))
+        var components = URLComponents(
+            url: apiHost.appending(path: "/repos/\(owner)/\(name)/contributors"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [URLQueryItem(name: "per_page", value: "\(limit)")]
+        let (data, _) = try await authorizedGet(url: components.url!, token: token)
+        return try Self.decodeContributors(from: data)
+    }
+
     /// Most recent release (including prereleases) ordered by creation date; skips drafts.
     /// Returns `nil` if the repository has no releases.
     private func latestReleaseAny(owner: String, name: String) async throws -> Release? {
@@ -846,8 +898,21 @@ public actor GitHubClient {
             .map {
                 let title = ($0.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 let published = $0.publishedAt ?? $0.createdAt ?? Date.distantPast
-                let assets = $0.assets ?? []
-                let downloads = assets.reduce(0) { $0 + ($1.downloadCount ?? 0) }
+                let rawAssets = $0.assets ?? []
+                let assets = rawAssets.compactMap { asset -> RepoReleaseAssetSummary? in
+                    guard let name = asset.name,
+                          let url = asset.browserDownloadUrl
+                    else {
+                        return nil
+                    }
+                    return RepoReleaseAssetSummary(
+                        name: name,
+                        sizeBytes: asset.size,
+                        downloadCount: asset.downloadCount ?? 0,
+                        url: url
+                    )
+                }
+                let downloads = rawAssets.reduce(0) { $0 + ($1.downloadCount ?? 0) }
                 return RepoReleaseSummary(
                     name: title.isEmpty ? $0.tagName : title,
                     tag: $0.tagName,
@@ -856,8 +921,9 @@ public actor GitHubClient {
                     isPrerelease: $0.prerelease ?? false,
                     authorLogin: $0.author?.login,
                     authorAvatarURL: $0.author?.avatarUrl,
-                    assetCount: assets.count,
-                    downloadCount: downloads
+                    assetCount: rawAssets.count,
+                    downloadCount: downloads,
+                    assets: assets
                 )
             }
     }
@@ -881,6 +947,53 @@ public actor GitHubClient {
                 actorLogin: run.actor?.login,
                 actorAvatarURL: run.actor?.avatarUrl,
                 runNumber: run.runNumber
+            )
+        }
+    }
+
+    static func decodeRecentDiscussions(from data: Data) throws -> [RepoDiscussionSummary] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let responses = try decoder.decode([DiscussionRecentResponse].self, from: data)
+        return responses.map {
+            RepoDiscussionSummary(
+                title: $0.title,
+                url: $0.htmlUrl,
+                updatedAt: $0.updatedAt,
+                authorLogin: $0.user?.login,
+                authorAvatarURL: $0.user?.avatarUrl,
+                commentCount: $0.comments ?? 0,
+                categoryName: $0.category?.name
+            )
+        }
+    }
+
+    static func decodeRecentTags(from data: Data) throws -> [RepoTagSummary] {
+        let decoder = JSONDecoder()
+        let responses = try decoder.decode([TagRecentResponse].self, from: data)
+        return responses.map {
+            RepoTagSummary(name: $0.name, commitSHA: $0.commit.sha)
+        }
+    }
+
+    static func decodeRecentBranches(from data: Data) throws -> [RepoBranchSummary] {
+        let decoder = JSONDecoder()
+        let responses = try decoder.decode([BranchRecentResponse].self, from: data)
+        return responses.map {
+            RepoBranchSummary(name: $0.name, commitSHA: $0.commit.sha, isProtected: $0.protected)
+        }
+    }
+
+    static func decodeContributors(from data: Data) throws -> [RepoContributorSummary] {
+        let decoder = JSONDecoder()
+        let responses = try decoder.decode([ContributorResponse].self, from: data)
+        return responses.compactMap {
+            guard let login = $0.login else { return nil }
+            return RepoContributorSummary(
+                login: login,
+                avatarURL: $0.avatarUrl,
+                url: $0.htmlUrl,
+                contributions: $0.contributions ?? 0
             )
         }
     }
@@ -980,11 +1093,68 @@ public actor GitHubClient {
         }
 
         struct ReleaseAsset: Decodable {
+            let name: String?
+            let size: Int?
             let downloadCount: Int?
+            let browserDownloadUrl: URL?
 
             enum CodingKeys: String, CodingKey {
+                case name
+                case size
                 case downloadCount = "download_count"
+                case browserDownloadUrl = "browser_download_url"
             }
+        }
+    }
+
+    private struct DiscussionRecentResponse: Decodable {
+        let title: String
+        let htmlUrl: URL
+        let updatedAt: Date
+        let comments: Int?
+        let user: RecentUser?
+        let category: DiscussionCategory?
+
+        struct DiscussionCategory: Decodable {
+            let name: String
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case title, user, comments, category
+            case htmlUrl = "html_url"
+            case updatedAt = "updated_at"
+        }
+    }
+
+    private struct TagRecentResponse: Decodable {
+        let name: String
+        let commit: TagCommit
+
+        struct TagCommit: Decodable {
+            let sha: String
+        }
+    }
+
+    private struct BranchRecentResponse: Decodable {
+        let name: String
+        let protected: Bool
+        let commit: TagCommit
+
+        struct TagCommit: Decodable {
+            let sha: String
+        }
+    }
+
+    private struct ContributorResponse: Decodable {
+        let login: String?
+        let avatarUrl: URL?
+        let htmlUrl: URL?
+        let contributions: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case login, contributions
+            case avatarUrl = "avatar_url"
+            case htmlUrl = "html_url"
         }
     }
 

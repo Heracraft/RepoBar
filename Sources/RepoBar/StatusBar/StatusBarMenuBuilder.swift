@@ -191,6 +191,46 @@ final class StatusBarMenuBuilder {
             openAction: #selector(self.target.openActions),
             badgeText: runBadge
         )))
+        let cachedDiscussionCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .discussions)
+        menu.addItem(self.recentListSubmenuItem(RecentListConfig(
+            title: "Discussions",
+            systemImage: "bubble.left.and.bubble.right",
+            fullName: repo.title,
+            kind: .discussions,
+            openTitle: "Open Discussions",
+            openAction: #selector(self.target.openDiscussions),
+            badgeText: cachedDiscussionCount.flatMap { $0 > 0 ? String($0) : nil }
+        )))
+        let cachedTagCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .tags)
+        menu.addItem(self.recentListSubmenuItem(RecentListConfig(
+            title: "Tags",
+            systemImage: "tag",
+            fullName: repo.title,
+            kind: .tags,
+            openTitle: "Open Tags",
+            openAction: #selector(self.target.openTags),
+            badgeText: cachedTagCount.flatMap { $0 > 0 ? String($0) : nil }
+        )))
+        let cachedBranchCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .branches)
+        menu.addItem(self.recentListSubmenuItem(RecentListConfig(
+            title: "Branches",
+            systemImage: "point.topleft.down.curvedto.point.bottomright.up",
+            fullName: repo.title,
+            kind: .branches,
+            openTitle: "Open Branches",
+            openAction: #selector(self.target.openBranches),
+            badgeText: cachedBranchCount.flatMap { $0 > 0 ? String($0) : nil }
+        )))
+        let cachedContributorCount = self.target.cachedRecentListCount(fullName: repo.title, kind: .contributors)
+        menu.addItem(self.recentListSubmenuItem(RecentListConfig(
+            title: "Contributors",
+            systemImage: "person.2",
+            fullName: repo.title,
+            kind: .contributors,
+            openTitle: "Open Contributors",
+            openAction: #selector(self.target.openContributors),
+            badgeText: cachedContributorCount.flatMap { $0 > 0 ? String($0) : nil }
+        )))
 
         if repo.activityURL != nil {
             menu.addItem(self.actionItem(

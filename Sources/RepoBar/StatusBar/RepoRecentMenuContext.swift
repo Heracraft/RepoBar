@@ -5,6 +5,10 @@ enum RepoRecentMenuKind: Hashable {
     case pullRequests
     case releases
     case ciRuns
+    case discussions
+    case tags
+    case branches
+    case contributors
 }
 
 struct RepoRecentMenuContext: Hashable {
