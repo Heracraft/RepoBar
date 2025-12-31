@@ -8,12 +8,21 @@ struct LoginView: View {
         VStack(spacing: 28) {
             Spacer(minLength: 40)
 
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 Image("RepoBarLogo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 96, height: 96)
-                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 6)
+                    .padding(18)
+                    .frame(width: 120, height: 120)
+                    .background(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.6), lineWidth: 0.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.2), radius: 14, x: 0, y: 10)
                     .accessibilityHidden(true)
                 Text("RepoBar")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))

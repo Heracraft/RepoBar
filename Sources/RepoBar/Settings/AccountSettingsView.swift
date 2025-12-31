@@ -120,7 +120,7 @@ struct AccountSettingsView: View {
             let effectiveClientSecret = self.clientSecret.isEmpty && !usingEnterprise
                 ? RepoBarAuthDefaults.clientSecret
                 : self.clientSecret
-            if usingEnterprise && (effectiveClientID.isEmpty || effectiveClientSecret.isEmpty) {
+            if usingEnterprise, effectiveClientID.isEmpty || effectiveClientSecret.isEmpty {
                 self.validationError = "Client ID and Client Secret are required for enterprise login."
                 self.session.account = .loggedOut
                 return
