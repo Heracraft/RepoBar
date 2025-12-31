@@ -7,18 +7,18 @@ struct RepoOwnerFilter: Equatable, Sendable {
     static func parse(_ values: [String]) -> RepoOwnerFilter? {
         let parsed = values
             .flatMap { $0.split(separator: ",") }
-            .compactMap { normalizeOwner(String($0)) }
+            .compactMap { self.normalizeOwner(String($0)) }
         let owners = Set(parsed)
         return owners.isEmpty ? nil : RepoOwnerFilter(owners: owners)
     }
 
     func applying(to repos: [Repository]) -> [Repository] {
-        repos.filter { owners.contains($0.owner.lowercased()) }
+        repos.filter { self.owners.contains($0.owner.lowercased()) }
     }
 
     func inserting(owner: String) -> RepoOwnerFilter {
         let normalized = Self.normalizeOwner(owner) ?? owner.lowercased()
-        var merged = owners
+        var merged = self.owners
         merged.insert(normalized)
         return RepoOwnerFilter(owners: merged)
     }

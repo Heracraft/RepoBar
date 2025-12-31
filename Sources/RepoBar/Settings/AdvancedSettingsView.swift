@@ -324,7 +324,7 @@ struct AdvancedSettingsView: View {
 
     private static let cliTargets = [
         "/usr/local/bin/repobar",
-        "/opt/homebrew/bin/repobar",
+        "/opt/homebrew/bin/repobar"
     ]
 
     private var preferredTerminalBinding: Binding<String> {
