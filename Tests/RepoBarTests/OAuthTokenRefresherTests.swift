@@ -79,6 +79,45 @@ struct OAuthTokenRefresherTests {
             #expect(message?.contains("refresh token revoked") == true)
         }
     }
+
+    @Test
+    func refreshFailureHandlesMalformedSuccessResponse() async throws {
+        let service = "com.steipete.repobar.auth.tests.\(UUID().uuidString)"
+        let store = TokenStore(service: service)
+        defer { store.clear() }
+
+        try store.save(tokens: OAuthTokens(accessToken: "old", refreshToken: "r1", expiresAt: .distantPast))
+
+        let session = URLSession(configuration: Self.sessionConfiguration())
+        let handlerID = UUID().uuidString
+        Self.MockURLProtocol.register(handlerID: handlerID) { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let data = Data("""
+            {"error":"invalid_grant","error_description":"refresh token revoked"}
+            """.utf8)
+            return (data, response)
+        }
+        defer { Self.MockURLProtocol.unregister(handlerID: handlerID) }
+
+        let refresher = OAuthTokenRefresher(tokenStore: store) { request in
+            let (tagged, boxed) = Self.taggedRequest(request, handlerID: handlerID)
+            _ = boxed
+            return try await session.data(for: tagged)
+        }
+
+        do {
+            _ = try await refresher.refreshIfNeeded(host: RepoBarAuthDefaults.githubHost)
+            #expect(Bool(false))
+        } catch let error as GitHubAPIError {
+            guard case let .badStatus(code, message) = error else {
+                Issue.record("Expected GitHubAPIError.badStatus, got \(error)")
+                return
+            }
+            #expect(code == 200)
+            #expect(message?.contains("Please sign in again.") == true)
+            #expect(message?.contains("refresh token revoked") == true)
+        }
+    }
 }
 
 private extension OAuthTokenRefresherTests {

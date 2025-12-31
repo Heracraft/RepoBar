@@ -45,15 +45,21 @@ public struct OAuthTokenRefresher: Sendable {
             let message = Self.refreshErrorMessage(status: response.statusCode, detail: detail)
             throw GitHubAPIError.badStatus(code: response.statusCode, message: message)
         }
-        let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
-        let expires = Date().addingTimeInterval(TimeInterval(decoded.expiresIn ?? 3600))
-        tokens = OAuthTokens(
-            accessToken: decoded.accessToken,
-            refreshToken: decoded.refreshToken ?? tokens.refreshToken,
-            expiresAt: expires
-        )
-        try self.tokenStore.save(tokens: tokens)
-        return tokens
+        do {
+            let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
+            let expires = Date().addingTimeInterval(TimeInterval(decoded.expiresIn ?? 3600))
+            tokens = OAuthTokens(
+                accessToken: decoded.accessToken,
+                refreshToken: decoded.refreshToken ?? tokens.refreshToken,
+                expiresAt: expires
+            )
+            try self.tokenStore.save(tokens: tokens)
+            return tokens
+        } catch {
+            let detail = Self.refreshErrorDetail(from: data)
+            let message = Self.refreshDecodeFailureMessage(detail: detail)
+            throw GitHubAPIError.badStatus(code: response.statusCode, message: message)
+        }
     }
 }
 
@@ -83,6 +89,13 @@ private extension OAuthTokenRefresher {
             return "Authentication refresh failed (HTTP \(status)). \(detail) Please sign in again."
         }
         return "Authentication refresh failed (HTTP \(status)). Please sign in again."
+    }
+
+    static func refreshDecodeFailureMessage(detail: String?) -> String {
+        if let detail, detail.isEmpty == false {
+            return "Authentication refresh failed. \(detail) Please sign in again."
+        }
+        return "Authentication refresh failed. Please sign in again."
     }
 
     static func cleaned(_ input: String) -> String {

@@ -2,6 +2,9 @@ import Foundation
 
 public extension Error {
     var userFacingMessage: String {
+        if let decodingError = self as? DecodingError {
+            return decodingError.userFacingMessage
+        }
         if let ghError = self as? GitHubAPIError {
             return ghError.displayMessage
         }
@@ -18,5 +21,22 @@ public extension Error {
             }
         }
         return localizedDescription
+    }
+}
+
+private extension DecodingError {
+    var userFacingMessage: String {
+        switch self {
+        case let .keyNotFound(key, _):
+            return "Response missing expected field '\(key.stringValue)'. Try again or update RepoBar."
+        case .valueNotFound:
+            return "Response missing expected data. Try again or update RepoBar."
+        case .typeMismatch:
+            return "Response had unexpected data. Try again or update RepoBar."
+        case .dataCorrupted:
+            return "Response was malformed. Try again or update RepoBar."
+        @unknown default:
+            return "Response could not be decoded. Try again or update RepoBar."
+        }
     }
 }
