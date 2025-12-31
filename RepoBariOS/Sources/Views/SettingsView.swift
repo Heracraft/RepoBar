@@ -3,8 +3,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @Bindable var appModel: AppModel
-    let showsCloseButton: Bool = false
+    let showsCloseButton: Bool
     @Environment(\.dismiss) private var dismiss
+
+    init(appModel: AppModel, showsCloseButton: Bool = false) {
+        self._appModel = Bindable(wrappedValue: appModel)
+        self.showsCloseButton = showsCloseButton
+    }
 
     var body: some View {
         Form {
