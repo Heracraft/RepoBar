@@ -12,6 +12,7 @@ struct ChangelogMenuView: View {
                     Image(systemName: "doc.text")
                         .symbolRenderingMode(.hierarchical)
                         .font(.caption)
+                        .offset(y: -1)
                         .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 }
 
