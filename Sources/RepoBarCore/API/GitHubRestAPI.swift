@@ -11,15 +11,20 @@ struct GitHubRestAPI: Sendable {
     let requestRunner: GitHubRequestRunner
     let diag: DiagnosticsLogger
 
+    static func userReposQueryItems() -> [URLQueryItem] {
+        [
+            URLQueryItem(name: "sort", value: "pushed"),
+            URLQueryItem(name: "direction", value: "desc"),
+            URLQueryItem(name: "affiliation", value: "owner,collaborator,organization_member"),
+            URLQueryItem(name: "visibility", value: "all")
+        ]
+    }
+
     func userReposSorted(limit: Int) async throws -> [RepoItem] {
         let token = try await tokenProvider()
         let baseURL = await apiHost()
         var components = URLComponents(url: baseURL.appending(path: "/user/repos"), resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "per_page", value: "\(limit)"),
-            URLQueryItem(name: "sort", value: "pushed"),
-            URLQueryItem(name: "direction", value: "desc")
-        ]
+        components.queryItems = [URLQueryItem(name: "per_page", value: "\(limit)")] + Self.userReposQueryItems()
         let (data, _) = try await authorizedGet(url: components.url!, token: token)
         return try GitHubDecoding.decode([RepoItem].self, from: data)
     }
@@ -28,27 +33,10 @@ struct GitHubRestAPI: Sendable {
     func userReposPaginated(limit: Int?) async throws -> [RepoItem] {
         try await self.fetchAllPages(
             path: "/user/repos",
-            queryItems: [
-                URLQueryItem(name: "sort", value: "pushed"),
-                URLQueryItem(name: "direction", value: "desc")
-            ],
+            queryItems: Self.userReposQueryItems(),
             limit: limit,
             decode: { try GitHubDecoding.decode([RepoItem].self, from: $0) }
         )
-    }
-
-    func ownedOrgLogins() async throws -> [String] {
-        let memberships: [OrgMembership] = try await fetchAllPages(
-            path: "/user/memberships/orgs",
-            queryItems: [],
-            limit: nil,
-            decode: { try GitHubDecoding.decode([OrgMembership].self, from: $0) }
-        )
-
-        return memberships
-            .filter { ($0.state ?? "active") == "active" }
-            .filter { $0.role == "admin" }
-            .map(\.organization.login)
     }
 
     func fetchCurrentUser() async throws -> CurrentUser {

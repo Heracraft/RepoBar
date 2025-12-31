@@ -1,0 +1,17 @@
+import Foundation
+@testable import RepoBarCore
+import Testing
+
+struct GitHubRestAPITests {
+    @Test
+    func userReposQueryItemsIncludeOrgAndVisibility() {
+        let items = GitHubRestAPI.userReposQueryItems()
+        let values = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value) })
+
+        #expect(items.count == 4)
+        #expect(values["sort"] == "pushed")
+        #expect(values["direction"] == "desc")
+        #expect(values["affiliation"] == "owner,collaborator,organization_member")
+        #expect(values["visibility"] == "all")
+    }
+}

@@ -73,10 +73,8 @@ public actor GitHubClient {
 
     public func activityRepositories(limit: Int?) async throws -> [Repository] {
         let items = try await self.restAPI.userReposPaginated(limit: limit)
-        let allowedOwners = try await self.allowedOwnerLogins()
-        let filtered = items.filter { allowedOwners.contains($0.owner.login.lowercased()) }
-        let activityResults = await self.fetchActivityResults(for: filtered)
-        return filtered.map { item in
+        let activityResults = await self.fetchActivityResults(for: items)
+        return items.map { item in
             let fullName = "\(item.owner.login)/\(item.name)"
             let result = activityResults[fullName] ?? ActivityFetchResult(
                 pulls: .failure(URLError(.unknown)),
@@ -313,21 +311,6 @@ public actor GitHubClient {
     }
 
     // MARK: - Internal helpers
-
-    private func allowedOwnerLogins() async throws -> Set<String> {
-        let user = try await self.currentUser()
-        var allowed = Set<String>()
-        allowed.insert(user.username.lowercased())
-        do {
-            let orgs = try await self.restAPI.ownedOrgLogins()
-            for org in orgs {
-                allowed.insert(org.lowercased())
-            }
-        } catch {
-            await self.diag.message("Failed to fetch org memberships; filtering to user only.")
-        }
-        return allowed
-    }
 
     private func validAccessToken() async throws -> String {
         if let provider = tokenProvider, let tokens = try await provider() { return tokens.accessToken }

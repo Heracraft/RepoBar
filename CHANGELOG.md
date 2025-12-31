@@ -4,6 +4,7 @@
 
 - Fix CLI: allow invoking bundled `repobarcli` directly (argv0 normalization).
 - Limit "More Activity/Commits" submenus to 20 entries.
+- Include organization and collaborator repositories in repo lists.
 
 ## 0.1.0 - 2025-12-31
 
