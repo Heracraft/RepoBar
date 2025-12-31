@@ -92,6 +92,10 @@ if [ -d "${SPARKLE_FRAMEWORK}" ]; then
 
   # SwiftPM builds use @rpath + @loader_path, so keep Sparkle reachable next to the executable.
   ln -sf "../Frameworks/Sparkle.framework" "${APP_BUNDLE}/Contents/MacOS/Sparkle.framework" || true
+
+  # The release binary can carry an `@executable_path/../lib` rpath; provide a stable location there too.
+  mkdir -p "${APP_BUNDLE}/Contents/lib"
+  ln -sf "../Frameworks/Sparkle.framework" "${APP_BUNDLE}/Contents/lib/Sparkle.framework" || true
 fi
 
 # Override Info.plist with packaged settings (LSUIElement, URL scheme, versions).
