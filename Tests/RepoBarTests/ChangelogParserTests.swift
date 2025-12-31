@@ -101,4 +101,31 @@ struct ChangelogParserTests {
         let presentation = ChangelogParser.presentation(parsed: parsed, releaseTag: nil)
         #expect(presentation?.badgeText == "2")
     }
+
+    @Test("Headline prefers first release section over Unreleased")
+    func headlinePrefersFirstReleaseSection() {
+        let markdown = """
+        # Changelog
+
+        ## Unreleased
+        - Work in progress
+
+        ## 1.2.0 - 2025-12-31
+        - Shipped
+        """
+        let parsed = ChangelogParser.parse(markdown: markdown)
+        #expect(ChangelogParser.headline(parsed: parsed) == "1.2.0 - 2025-12-31")
+    }
+
+    @Test("Headline falls back to first section when no version exists")
+    func headlineFallsBackToFirstSection() {
+        let markdown = """
+        # Changelog
+
+        ## Highlights
+        - Big change
+        """
+        let parsed = ChangelogParser.parse(markdown: markdown)
+        #expect(ChangelogParser.headline(parsed: parsed) == "Highlights")
+    }
 }

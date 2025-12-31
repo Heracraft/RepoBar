@@ -52,6 +52,14 @@ public enum ChangelogParser {
         return ChangelogParsed(sections: sections)
     }
 
+    public static func headline(parsed: ChangelogParsed) -> String? {
+        guard parsed.sections.isEmpty == false else { return nil }
+        if let release = parsed.sections.first(where: { self.versionMatch(in: $0.title) != nil }) {
+            return release.title
+        }
+        return parsed.sections.first?.title
+    }
+
     public static func presentation(parsed: ChangelogParsed, releaseTag: String?) -> ChangelogRowPresentation? {
         guard parsed.sections.isEmpty == false else { return nil }
 
