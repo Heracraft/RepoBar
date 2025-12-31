@@ -31,6 +31,7 @@
 - Fix CLI auth refresh: show actionable error when refresh response is missing tokens.
 - CLI: add markdown rendering command backed by Swiftdansi.
 - CLI: add changelog parser command and end-to-end markdown/changelog tests.
+- CLI: default changelog command to CHANGELOG files in the repo when no path is provided.
 - Add Settings installer to link `repobar` CLI into common Homebrew paths.
 - Add Display settings to reorder/hide main menu and repo submenu items (reset to defaults included).
 - Make Display reset action destructive and stabilize spacing for rows without subtitles.
