@@ -4,6 +4,7 @@ import RepoBarCore
 
 @MainActor
 final class StatusBarMenuManager: NSObject, NSMenuDelegate {
+    private static let minimumMainMenuItems = 3
     let appState: AppState
     private var mainMenu: NSMenu?
     private weak var statusItem: NSStatusItem?
@@ -120,6 +121,9 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
         if self.recentListCoordinator.handleMenuWillOpen(menu) { return }
         if self.localGitMenuCoordinator.handleMenuWillOpen(menu) { return }
         if menu === self.mainMenu {
+            if menu.delegate == nil {
+                menu.delegate = self
+            }
             let plan = self.menuBuilder.mainMenuPlan()
             self.recentListCoordinator.pruneMenus()
             self.localGitMenuCoordinator.pruneMenus()
@@ -129,7 +133,12 @@ final class StatusBarMenuManager: NSObject, NSMenuDelegate {
                 }
             }
             self.appState.refreshIfNeededForMenu()
-            if self.lastMainMenuSignature != plan.signature || menu.items.isEmpty {
+            let isMenuTooSmall = menu.items.count < Self.minimumMainMenuItems
+            if isMenuTooSmall {
+                self.logMenuEvent("menuWillOpen mainMenu invalidating cache: items=\(menu.items.count)")
+                self.lastMainMenuSignature = nil
+            }
+            if self.lastMainMenuSignature != plan.signature || menu.items.isEmpty || isMenuTooSmall {
                 self.menuBuilder.populateMainMenu(menu, repos: plan.repos)
                 self.lastMainMenuSignature = plan.signature
             }
