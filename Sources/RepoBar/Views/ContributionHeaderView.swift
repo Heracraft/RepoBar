@@ -44,7 +44,7 @@ struct ContributionHeaderView: View {
         let hasHeatmap = self.hasCachedHeatmap
         let showProgress = self.session.contributionIsLoading && !hasHeatmap
 
-        ZStack {
+        if hasHeatmap {
             VStack(spacing: 4) {
                 HeatmapView(
                     cells: filtered,
@@ -57,26 +57,19 @@ struct ContributionHeaderView: View {
                 )
             }
             .frame(maxWidth: .infinity)
-            .opacity(hasHeatmap ? 1 : 0)
-
-            if showProgress {
-                ProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+            .accessibilityLabel("Contribution graph for \(self.username)")
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.gray.opacity(0.12))
+                if showProgress {
+                    ProgressView()
+                        .controlSize(.regular)
+                }
             }
+            .frame(maxWidth: .infinity, minHeight: Self.loadingHeight)
+            .accessibilityLabel("Contribution graph loading")
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel(hasHeatmap ? "Contribution graph for \(self.username)" : "Contribution graph loading")
-    }
-
-    private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color.gray.opacity(0.2))
-            .frame(height: 80)
-            .accessibilityLabel("Contribution graph unavailable")
-    }
-
-    private var placeholderOverlay: some View {
-        self.placeholder.overlay { ProgressView() }
     }
 
     private var hasCachedHeatmap: Bool {
@@ -84,4 +77,5 @@ struct ContributionHeaderView: View {
     }
 
     private static let graphHeight: CGFloat = 48
+    private static let loadingHeight: CGFloat = 72
 }

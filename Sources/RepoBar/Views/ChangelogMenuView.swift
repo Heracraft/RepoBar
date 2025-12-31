@@ -63,12 +63,10 @@ private struct MarkdownTextView: View {
 
     private var attributedText: AttributedString {
         let source = self.markdownWithHardBreaks
-        if let parsed = try? AttributedString(markdown: source) {
-            return parsed
-        }
-        var inlineOptions = AttributedString.MarkdownParsingOptions()
-        inlineOptions.interpretedSyntax = .inlineOnlyPreservingWhitespace
-        if let parsed = try? AttributedString(markdown: source, options: inlineOptions) {
+        var options = AttributedString.MarkdownParsingOptions()
+        options.interpretedSyntax = .full
+        options.failurePolicy = .returnPartiallyParsedIfPossible
+        if let parsed = try? AttributedString(markdown: source, options: options) {
             return parsed
         }
         return AttributedString(source)

@@ -121,21 +121,13 @@ struct MenuLoadingRowView: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: MenuStyle.submenuIconSpacing) {
-            SubmenuIconPlaceholderView(font: .caption)
-
+        VStack(spacing: 8) {
             ProgressView()
-                .controlSize(.small)
-
+                .controlSize(.regular)
             Text(self.text)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, MenuStyle.cardHorizontalPadding)
-        .padding(.vertical, MenuStyle.cardVerticalPadding)
+        .frame(maxWidth: .infinity, minHeight: 120)
     }
 }
