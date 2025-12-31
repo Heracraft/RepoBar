@@ -8,6 +8,7 @@
 - iOS: switch GitHub auth callback to `https://repobar.app/oauth-callback`.
 - Site: add Apple App Site Association for `repobar.app` universal links.
 - iOS: silence AppIntents metadata build warnings.
+- iOS: add the RepoBar logo to the login screen and app icon.
 - Fix CLI: allow invoking bundled `repobarcli` directly (argv0 normalization).
 - Fix CLI auth refresh: show actionable error when refresh response is missing tokens.
 - Add Settings installer to link `repobar` CLI into common Homebrew paths.

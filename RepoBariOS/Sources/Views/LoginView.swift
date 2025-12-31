@@ -9,6 +9,12 @@ struct LoginView: View {
             Spacer(minLength: 40)
 
             VStack(spacing: 12) {
+                Image("RepoBarLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 96, height: 96)
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 6)
+                    .accessibilityHidden(true)
                 Text("RepoBar")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                 Text("Your repos, everywhere.")
