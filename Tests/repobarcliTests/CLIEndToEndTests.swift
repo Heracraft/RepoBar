@@ -37,6 +37,39 @@ struct CLIEndToEndTests {
         #expect(decoded.presentation?.title == "Changelog • Unreleased")
         #expect(decoded.presentation?.badgeText == "2")
     }
+
+    @Test
+    @MainActor
+    func changelogCommandDefaultsToRepoChangelog() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let changelogURL = tempDir.appendingPathComponent("CHANGELOG.md")
+        let contents = """
+        # Changelog
+
+        ## Unreleased
+        - One
+
+        ## 1.0.0
+        - Initial
+        """
+        try contents.write(to: changelogURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let output = try await withCurrentDirectory(tempDir) {
+            try await runCLI([
+                "changelog",
+                "--release",
+                "v1.0.0",
+                "--json"
+            ])
+        }
+
+        let data = try #require(output.data(using: .utf8))
+        let decoded = try JSONDecoder().decode(ChangelogOutput.self, from: data)
+        #expect(decoded.presentation?.title == "Changelog • Unreleased")
+        #expect(decoded.presentation?.badgeText == "1")
+    }
 }
 
 private func fixtureURL(_ name: String) throws -> URL {
@@ -48,6 +81,14 @@ private func fixtureURL(_ name: String) throws -> URL {
 
 private enum FixtureError: Error {
     case missing(String)
+}
+
+@MainActor
+private func withCurrentDirectory<T>(_ url: URL, _ work: () async throws -> T) async throws -> T {
+    let previous = FileManager.default.currentDirectoryPath
+    FileManager.default.changeCurrentDirectoryPath(url.path)
+    defer { FileManager.default.changeCurrentDirectoryPath(previous) }
+    return try await work()
 }
 
 @MainActor
