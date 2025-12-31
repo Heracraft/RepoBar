@@ -21,6 +21,7 @@ struct AboutLinkRow: View {
                     .underline(self.hovering, color: .accentColor)
             }
             .foregroundColor(.accentColor)
+            .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
         .onHover { self.hovering = $0 }

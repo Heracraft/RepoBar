@@ -12,6 +12,7 @@
 - Add Display settings to reorder/hide main menu and repo submenu items (reset to defaults included).
 - Make Display reset action destructive and stabilize spacing for rows without subtitles.
 - Invalidate menu cache and rebuild if the menu appears too small when opening.
+- Add padding between About links and bump settings window height for more breathing room.
 - Limit "More Activity/Commits" submenus to 20 entries.
 - Include organization and collaborator repositories in repo lists.
 - CLI: add `--owner`/`--mine` filters for repos list.

@@ -34,7 +34,7 @@ struct SettingsView: View {
                 .tag(SettingsTab.about)
         }
         .tabViewStyle(.automatic)
-        .frame(width: 540, height: 605)
+        .frame(width: 540, height: 666)
         .onChange(of: self.session.settings.debugPaneEnabled) { _, enabled in
             #if DEBUG
                 if !enabled, self.session.settingsSelectedTab == .debug {

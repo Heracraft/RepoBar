@@ -146,7 +146,7 @@ public actor GitHubClient {
                         try await self.restAPI.openPullRequestCount(owner: owner, name: name)
                     }
                     async let activityResult: Result<ActivitySnapshot, Error> = self.capture {
-                        try await self.restAPI.recentActivity(owner: owner, name: name, limit: 10)
+                        try await self.restAPI.recentActivity(owner: owner, name: name, limit: 25)
                     }
                     let result = await ActivityFetchResult(
                         pulls: openPullsResult,

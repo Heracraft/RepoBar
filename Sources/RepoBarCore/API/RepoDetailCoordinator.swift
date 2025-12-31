@@ -62,7 +62,7 @@ actor RepoDetailCoordinator {
             ? Self.capture { try await restAPI.ciStatus(owner: resolvedOwner, name: resolvedName) }
             : .success(cachedCiDetails)
         async let activityResult: Result<ActivitySnapshot, Error> = shouldFetchActivity
-            ? Self.capture { try await restAPI.recentActivity(owner: resolvedOwner, name: resolvedName, limit: 10) }
+            ? Self.capture { try await restAPI.recentActivity(owner: resolvedOwner, name: resolvedName, limit: 25) }
             : .success(ActivitySnapshot(events: cachedActivityEvents, latest: cachedActivity))
         async let trafficResult: Result<TrafficStats?, Error> = shouldFetchTraffic
             ? Self.capture { try await restAPI.trafficStats(owner: resolvedOwner, name: resolvedName) }
