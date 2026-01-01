@@ -30,7 +30,14 @@ Heads up: This is the first public release (v0.1.0). There is still plenty to po
 ## Platform Support
 
 **macOS**: ✅ Fully supported (macOS 15+)  
-**Linux/KDE**: 🚧 [Work in progress](docs/LINUX_PORT_TRACKING.md) - See [Linux port documentation](docs/linux-port.md) and [building guide](docs/building-linux.md) for current status and how to contribute.
+**Linux/KDE**: 🚧 [Work in progress](docs/LINUX_PORT_TRACKING.md) - Platform abstraction layer complete (2026-01-01). See [Linux port documentation](docs/linux-port.md) and [building guide](docs/building-linux.md) for current status and how to contribute.
+
+**Recent Linux Port Progress (2026-01-01)**:
+- ✅ Platform abstraction layer implemented with protocols for SystemTray, Menu, SecureStorage, and BrowserLauncher
+- ✅ macOS implementations wrapping existing AppKit functionality
+- ✅ Linux stub implementations with TODOs for future work
+- ✅ `repobar-linux` placeholder executable builds and runs on Linux
+- ⏳ Full functionality still blocked on apollo-ios Linux compatibility
 
 ## Local projects & sync
 
