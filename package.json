@@ -11,6 +11,7 @@
     "docs:list": "node Scripts/docs-list.mjs",
     "test": "./Scripts/test.sh",
     "build": "swift build",
+    "build:linux": "./Scripts/build-linux.sh",
     "repobar": "swift build --product repobarcli && ./Scripts/codesign_cli.sh .build/debug/repobarcli && .build/debug/repobarcli",
     "repobarcli": "pnpm -s repobar",
     "start": "./Scripts/compile_and_run.sh",

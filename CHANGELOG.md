@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Linux/KDE Port - Initial Implementation (2026-01-01)
+
+**Platform Abstraction Layer**:
+- Created comprehensive platform abstraction protocols: `SystemTray`, `PlatformMenu`, `PlatformMenuItem`, `SecureStorage`, `BrowserLauncher`
+- Implemented macOS concrete types wrapping existing AppKit functionality (NSStatusBar, NSMenu, Keychain, NSWorkspace)
+- Created Linux stub implementations with TODOs for future D-Bus integration
+- Added conditional `PlatformTypes` for cross-platform Image and Color support
+- Created `PlatformFactory` for platform-agnostic instance creation
+
+**Build System**:
+- Added `Platform` target to Package.swift that builds successfully on both macOS and Linux
+- Created `repobar-linux` executable placeholder that demonstrates Linux compatibility
+- Updated `build-linux.sh` script to build Platform target and repobar-linux executable
+- Verified Platform abstraction layer builds and runs on Linux
+
+**Documentation**:
+- Updated `docs/LINUX_PORT_TRACKING.md` with completed Platform abstraction layer milestone
+- Updated README.md with Linux port progress
+- Enhanced build-linux.sh with current status and success indicators
+
+**Status**: Platform foundation is complete. Full Linux functionality still requires:
+1. apollo-ios Linux compatibility fix (blocks RepoBarCore)
+2. Actual D-Bus implementations for system tray, menu, and secure storage
+3. Migration of existing code to use Platform abstractions
+
 ## 0.1.2 - 2025-12-31
 
 - iOS app preview (not finished, not in the App Store yet): repo list/cards, activity feed, detail drill‑downs, login/settings, icons/branding, and continued auth/UI polish.

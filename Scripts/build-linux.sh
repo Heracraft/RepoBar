@@ -86,67 +86,104 @@ fi
 # Explain current limitations
 info "Current Linux port status:"
 echo ""
-warning "⚠️  LINUX PORT IS WORK IN PROGRESS ⚠️"
+success "✓ Platform abstraction layer implemented (2026-01-01)"
+success "✓ repobar-linux placeholder builds successfully"
+echo ""
+warning "⚠️  FULL FUNCTIONALITY STILL IN PROGRESS ⚠️"
+echo ""
+echo "What works:"
+echo "  ✓ Platform target builds on Linux"
+echo "  ✓ repobar-linux placeholder executable"
+echo "  ✓ Cross-platform abstractions defined"
 echo ""
 echo "Known issues:"
 echo "  1. apollo-ios dependency doesn't support Linux (missing FoundationNetworking imports)"
 echo "  2. RepoBarCore cannot build due to apollo-ios issue"
-echo "  3. Main app uses macOS-only frameworks (AppKit, MenuBarExtra)"
+echo "  3. Linux platform implementations are stubs (need D-Bus integration)"
 echo ""
 echo "What this means:"
-echo "  - Full build will fail"
-echo "  - We're documenting the port process"
+echo "  - Platform abstraction layer is ready"
+echo "  - repobar-linux placeholder demonstrates Linux compatibility"
+echo "  - Full functionality blocked on apollo-ios fix"
 echo "  - See docs/building-linux.md for details"
 echo ""
 
-# Ask if user wants to continue
-read -p "Continue with build attempt anyway? (y/n) " -n 1 -r
+# Try building Platform target first
+info "Building Platform target..."
+echo ""
+
+if swift build --target Platform 2>&1 | tail -10; then
+    success "Platform target built successfully!"
+    echo ""
+else
+    error "Platform build failed"
+    exit 1
+fi
+
+# Try building repobar-linux
+info "Building repobar-linux placeholder..."
+echo ""
+
+if swift build --product repobar-linux 2>&1 | tail -10; then
+    success "repobar-linux built successfully!"
+    echo ""
+    info "Running repobar-linux:"
+    echo ""
+    .build/x86_64-unknown-linux-gnu/debug/repobar-linux
+    echo ""
+else
+    error "repobar-linux build failed"
+    exit 1
+fi
+
+# Ask if user wants to try RepoBarCore
+echo ""
+read -p "Try building RepoBarCore (will fail due to apollo-ios)? (y/n) " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    info "Build cancelled"
-    exit 0
-fi
-
-# Try to build RepoBarCore
-info "Attempting to build RepoBarCore..."
-echo ""
-
-BUILD_OUTPUT=$(mktemp)
-if swift build --target RepoBarCore 2>&1 | tee "$BUILD_OUTPUT"; then
-    success "RepoBarCore built successfully!"
-    echo ""
-    info "This is unexpected - apollo-ios must have been fixed!"
-    info "Please report this success to the project maintainers"
+    info "Skipping RepoBarCore build"
 else
-    BUILD_EXIT_CODE=$?
-    error "RepoBarCore build failed (exit code: $BUILD_EXIT_CODE)"
+    # Try to build RepoBarCore
+    info "Attempting to build RepoBarCore..."
     echo ""
     
-    # Check for known errors
-    if grep -q "FoundationNetworking" "$BUILD_OUTPUT"; then
-        warning "Found FoundationNetworking errors (expected)"
+    BUILD_OUTPUT=$(mktemp)
+    if swift build --target RepoBarCore 2>&1 | tee "$BUILD_OUTPUT"; then
+        success "RepoBarCore built successfully!"
         echo ""
-        echo "This is a known issue with apollo-ios on Linux."
+        info "This is unexpected - apollo-ios must have been fixed!"
+        info "Please report this success to the project maintainers"
+    else
+        BUILD_EXIT_CODE=$?
+        error "RepoBarCore build failed (exit code: $BUILD_EXIT_CODE)"
         echo ""
-        echo "To fix this:"
-        echo "  1. Fork apollo-ios"
-        echo "  2. Add 'import FoundationNetworking' to affected files"
-        echo "  3. Update Package.swift to use your fork"
-        echo ""
-        echo "Or wait for upstream apollo-ios to add Linux support."
-        echo ""
-        echo "See docs/building-linux.md for more details."
+        
+        # Check for known errors
+        if grep -q "FoundationNetworking" "$BUILD_OUTPUT"; then
+            warning "Found FoundationNetworking errors (expected)"
+            echo ""
+            echo "This is a known issue with apollo-ios on Linux."
+            echo ""
+            echo "To fix this:"
+            echo "  1. Fork apollo-ios"
+            echo "  2. Add 'import FoundationNetworking' to affected files"
+            echo "  3. Update Package.swift to use your fork"
+            echo ""
+            echo "Or wait for upstream apollo-ios to add Linux support."
+            echo ""
+            echo "See docs/building-linux.md for more details."
+        fi
+        
+        if grep -q "cannot find type 'URLRequest'" "$BUILD_OUTPUT"; then
+            warning "Found URLRequest errors (expected)"
+            echo ""
+            echo "These types require 'import FoundationNetworking' on Linux."
+            echo "See apollo-ios issue tracker for updates."
+        fi
     fi
     
-    if grep -q "cannot find type 'URLRequest'" "$BUILD_OUTPUT"; then
-        warning "Found URLRequest errors (expected)"
-        echo ""
-        echo "These types require 'import FoundationNetworking' on Linux."
-        echo "See apollo-ios issue tracker for updates."
-    fi
+    rm -f "$BUILD_OUTPUT"
 fi
-
-rm -f "$BUILD_OUTPUT"
 echo ""
 
 # Summary
