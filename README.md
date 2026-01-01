@@ -27,6 +27,11 @@ Direct download: [latest release](https://github.com/steipete/RepoBar/releases/l
 
 Heads up: This is the first public release (v0.1.0). There is still plenty to polish and expand, so expect rough edges and rapid iteration.
 
+## Platform Support
+
+**macOS**: ✅ Fully supported (macOS 15+)  
+**Linux/KDE**: 🚧 [Work in progress](docs/LINUX_PORT_TRACKING.md) - See [Linux port documentation](docs/linux-port.md) and [building guide](docs/building-linux.md) for current status and how to contribute.
+
 ## Local projects & sync
 
 Point RepoBar at a local projects folder (e.g. `~/Projects`). It scans the folder, matches repos to GitHub, and shows local branch + sync state right in the menu. Optional auto-sync pulls clean repos using fast-forward only, with a configurable fetch cadence and a notification on successful sync.
