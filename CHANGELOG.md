@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Linux/KDE Port - Future Work Documentation (2026-01-01)
+
+**Future Work Planning**:
+- Created comprehensive `docs/FUTURE_WORK.md` documenting all next steps for Linux port
+- Detailed D-Bus integration guides for StatusNotifierItem and DBusMenu protocols
+- apollo-ios Linux compatibility fix strategies and options
+- Platform abstraction migration guide for existing code
+- Secure storage implementation guide (KWallet, libsecret, encrypted file fallback)
+- Linux packaging skeleton with AppImage, .deb, and .rpm build scripts
+
+**Enhanced Linux Stub Implementations**:
+- Added extensive implementation guides to `LinuxSystemTray.swift` with D-Bus interface details
+- Added comprehensive DBusMenu protocol documentation to `LinuxPlatformMenu.swift`
+- Added multi-backend implementation guide to `LinuxSecureStorage.swift` (KWallet, libsecret, fallback)
+- All TODOs now include example code, D-Bus interface specifications, and testing commands
+
+**Linux Packaging Scripts**:
+- Created `Scripts/build-appimage.sh` for universal Linux AppImage packages
+- Created `Scripts/build-deb.sh` for Debian/Ubuntu/KDE Neon packages with proper maintainer scripts
+- Created `Scripts/build-rpm.sh` for Fedora/openSUSE packages with full .spec file
+- All scripts include documentation, testing instructions, and placeholder handling
+
+**Documentation Updates**:
+- Updated README.md to link to FUTURE_WORK.md
+- Updated LINUX_PORT_TRACKING.md with references to detailed implementation guides
+- Cross-linked all Linux documentation for easy navigation
+
+**Status**: Foundation complete with comprehensive roadmap. Next phase: implement D-Bus integrations (Task 1), fix apollo-ios (Task 2), implement secure storage (Task 3), migrate existing code (Task 4), and create packages (Task 5).
+
 ### Linux/KDE Port - Initial Implementation (2026-01-01)
 
 **Platform Abstraction Layer**:
