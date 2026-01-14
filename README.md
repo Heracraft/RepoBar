@@ -35,9 +35,12 @@ Heads up: This is the first public release (v0.1.0). There is still plenty to po
 **Recent Linux Port Progress (2026-01-01)**:
 - ✅ Platform abstraction layer implemented with protocols for SystemTray, Menu, SecureStorage, and BrowserLauncher
 - ✅ macOS implementations wrapping existing AppKit functionality
-- ✅ Linux stub implementations with TODOs for future work
+- ✅ Linux stub implementations with detailed TODOs for future work
 - ✅ `repobar-linux` placeholder executable builds and runs on Linux
+- ✅ Comprehensive [future work documentation](docs/FUTURE_WORK.md) outlining next steps
 - ⏳ Full functionality still blocked on apollo-ios Linux compatibility
+
+**Next Steps**: See [FUTURE_WORK.md](docs/FUTURE_WORK.md) for detailed implementation plans including D-Bus integrations, apollo-ios fixes, code migration strategies, and Linux packaging.
 
 ## Local projects & sync
 

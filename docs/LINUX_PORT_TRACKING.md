@@ -8,8 +8,9 @@ RepoBar is currently a macOS-only application. This effort aims to bring RepoBar
 
 ## 📚 Documentation
 
-- [Linux Port Plan](./docs/linux-port.md) - Comprehensive implementation strategy
-- [Building on Linux](./docs/building-linux.md) - Build instructions and current limitations
+- [Linux Port Plan](./linux-port.md) - Comprehensive implementation strategy
+- [Building on Linux](./building-linux.md) - Build instructions and current limitations
+- **[Future Work](./FUTURE_WORK.md) - Detailed next steps and implementation guide**
 
 ## 🎯 Goals
 
@@ -59,6 +60,7 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
     - [ ] Wait for upstream fix
     - [ ] Use alternative GraphQL client for Linux
   - **This is the primary blocker for RepoBarCore on Linux**
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 2 for detailed implementation guide
 
 - [x] **Update Package.swift for cross-platform build** (2026-01-01)
   - [x] Added Platform target
@@ -79,12 +81,14 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
   - [x] Created wrappers around existing AppKit code
   - [x] No behavior changes to existing functionality
   - [ ] Migrate existing RepoBar code to use Platform abstractions (future work)
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 4 for migration guide
 
 - [x] **Implement Linux stub types** (2026-01-01)
-  - [x] LinuxSystemTray (placeholder with TODOs)
-  - [x] LinuxPlatformMenu (placeholder with TODOs)
-  - [x] LinuxSecureStorage (placeholder with TODOs)
+  - [x] LinuxSystemTray (placeholder with detailed implementation guide)
+  - [x] LinuxPlatformMenu (placeholder with detailed implementation guide)
+  - [x] LinuxSecureStorage (placeholder with detailed implementation guide)
   - [x] LinuxBrowserLauncher (basic xdg-open implementation)
+  - [x] Enhanced all stubs with comprehensive TODO comments and implementation examples
 
 #### Phase 3: Linux Implementation
 - [ ] **System Tray Integration**
@@ -92,12 +96,14 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
   - [ ] Choose implementation approach (Qt/GTK/pure D-Bus)
   - [ ] Implement LinuxSystemTray
   - [ ] Get icon to appear in KDE system tray
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 1.1 for detailed implementation guide
 
 - [ ] **Menu System**
   - [ ] Implement DBusMenu protocol
   - [ ] Create LinuxPlatformMenu
   - [ ] Support text menu items initially
   - [ ] Test menu interaction
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 1.2 for detailed implementation guide
 
 - [ ] **OAuth/Browser Integration**
   - [ ] Replace NSWorkspace.open with xdg-open
@@ -110,6 +116,7 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
   - [ ] Implement libsecret fallback
   - [ ] Create LinuxSecureStorage
   - [ ] Test token storage/retrieval
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 3 for detailed implementation guide
 
 #### Phase 4: CLI Tool
 - [ ] **Get repobarcli building on Linux**
@@ -138,8 +145,11 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
   - [ ] Integrate with KDE
 
 #### Phase 6: Distribution & Packaging
-- [ ] **Build System**
-  - [ ] Create Linux-specific build scripts
+- [x] **Build System** (2026-01-01)
+  - [x] Create Linux-specific build scripts
+  - [x] Created build-appimage.sh for universal Linux packages
+  - [x] Created build-deb.sh for Debian/Ubuntu/KDE Neon
+  - [x] Created build-rpm.sh for Fedora/openSUSE
   - [ ] Setup CI for Linux builds
   - [ ] Test on multiple distributions
 
@@ -149,6 +159,7 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
   - [ ] Create .rpm package (Fedora/openSUSE)
   - [ ] Consider Flatpak
   - [ ] Consider Snap
+  - See [FUTURE_WORK.md](./FUTURE_WORK.md) Task 5 for detailed packaging guide
 
 #### Phase 7: Testing & Polish
 - [ ] **Testing**
@@ -293,11 +304,12 @@ Create a Linux version of RepoBar that provides system tray integration with KDE
    - Add screenshots
    - Write user guides
 
-## 📖 Resources
+### 📖 Resources
 
 ### Documentation
-- [docs/linux-port.md](./docs/linux-port.md) - Full implementation plan
-- [docs/building-linux.md](./docs/building-linux.md) - Build guide and current status
+- [docs/linux-port.md](./linux-port.md) - Full implementation plan
+- [docs/building-linux.md](./building-linux.md) - Build guide and current status
+- **[docs/FUTURE_WORK.md](./FUTURE_WORK.md) - Detailed next steps with implementation examples**
 
 ### External Resources
 - [Swift on Linux](https://www.swift.org/download/#linux)
